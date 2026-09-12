@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35219.272
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GestorSub", "GestorSub\GestorSub.csproj", "{C674A8C4-EC56-4111-A9A9-D72E1CA0168F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C674A8C4-EC56-4111-A9A9-D72E1CA0168F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C674A8C4-EC56-4111-A9A9-D72E1CA0168F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C674A8C4-EC56-4111-A9A9-D72E1CA0168F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C674A8C4-EC56-4111-A9A9-D72E1CA0168F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0E95BEE3-DD3E-492B-B88F-FE43B2EEE82F}
+	EndGlobalSection
+EndGlobal

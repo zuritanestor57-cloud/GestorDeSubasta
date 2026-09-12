@@ -1,0 +1,28 @@
+# Ignorar archivos de VS y binarios
+# Archivos de Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Binarios y compilados
+bin/
+obj/
+Debug/
+Release/
+
+# Archivos de configuración locales
+*.dbmdl
+*.bak
+*.log
+*.ldf
+*.ndf
+
+# Archivos de migraciones temporales
+Migrations/
+
+# Archivos de sistema
+Thumbs.db
+ehthumbs.db
+Desktop.ini
