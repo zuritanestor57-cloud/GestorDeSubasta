@@ -28,6 +28,7 @@ namespace Domain.Entities
         Draft,      
         Published,  
         Cancelled,  
-        Finished    
+        Finished,
+        Deserted
     }
 }
