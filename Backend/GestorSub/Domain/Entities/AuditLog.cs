@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Domain.Entities
 {
-    internal class AuditLog
+    public class AuditLog
     {
         public int Id { get; set; }
         public string Event { get; set; }

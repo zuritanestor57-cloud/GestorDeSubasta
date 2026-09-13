@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Domain.Entities
 {
-    internal class Bid
+    public class Bid
     {
         public int Id { get; set; }
         public decimal Amount { get; set; }
