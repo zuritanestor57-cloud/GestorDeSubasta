@@ -15,9 +15,9 @@ namespace Aplicacion.Interfaces
         Task<AuctionDetailDto?> GetAuctionByIdAsync(int id);
 
         /// <summary>
-        /// Obtiene y filtra la lista general de subastas del catálogo según criterios de búsqueda, categoría, precio, estado y ordenamiento (RF-05 a RF-10).
+        /// Obtiene la lista general de subastas creadas.
         /// </summary>
-        Task<IEnumerable<AuctionDetailDto>> GetAllAuctionsAsync(AuctionFilterDto? filter = null);
+        Task<IEnumerable<AuctionDetailDto>> GetAllAuctionsAsync();
 
         /// <summary>
         /// Cancela una publicación únicamente si no posee ofertas registradas (RF-17).

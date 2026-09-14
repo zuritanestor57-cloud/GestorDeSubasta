@@ -89,66 +89,15 @@ namespace Aplicacion.Services
             return auction != null ? MapToDetailDto(auction) : null;
         }
 
-        public async Task<IEnumerable<AuctionDetailDto>> GetAllAuctionsAsync(AuctionFilterDto? filter = null)
+        public async Task<IEnumerable<AuctionDetailDto>> GetAllAuctionsAsync()
         {
-            var query = _context.Auctions
+            var auctions = await _context.Auctions
                 .Include(a => a.User)
                 .Include(a => a.Product)
                 .Include(a => a.Categories)
                 .Include(a => a.Bids)
                 .AsNoTracking()
-                .AsQueryable();
-
-            if (filter != null)
-            {
-                // RF-05: Búsqueda por palabra clave en título o descripción
-                if (!string.IsNullOrWhiteSpace(filter.SearchTerm))
-                {
-                    var term = filter.SearchTerm.Trim();
-                    query = query.Where(a => a.Product != null &&
-                        (a.Product.Title.Contains(term) || a.Product.Description.Contains(term)));
-                }
-
-                // RF-06: Filtrar por estado de subasta
-                if (filter.Status.HasValue)
-                {
-                    query = query.Where(a => a.Status == filter.Status.Value);
-                }
-
-                // RF-07: Filtrar por categoría
-                if (filter.CategoryId.HasValue)
-                {
-                    query = query.Where(a => a.Categories.Any(c => c.Id == filter.CategoryId.Value));
-                }
-
-                // RF-08: Filtrar por rango de precio (oferta actual)
-                if (filter.MinPrice.HasValue)
-                {
-                    query = query.Where(a => a.CurrentBid >= filter.MinPrice.Value);
-                }
-
-                if (filter.MaxPrice.HasValue)
-                {
-                    query = query.Where(a => a.CurrentBid <= filter.MaxPrice.Value);
-                }
-
-                // RF-09: Ordenar resultados
-                query = filter.OrderBy?.ToLower() switch
-                {
-                    "price_asc" => query.OrderBy(a => a.CurrentBid),
-                    "price_desc" => query.OrderByDescending(a => a.CurrentBid),
-                    "date_asc" or "ending_soonest" => query.OrderBy(a => a.EndDate),
-                    "date_desc" => query.OrderByDescending(a => a.EndDate),
-                    "newest" => query.OrderByDescending(a => a.StartDate),
-                    _ => query.OrderByDescending(a => a.StartDate) // Por defecto: más recientes
-                };
-            }
-            else
-            {
-                query = query.OrderByDescending(a => a.StartDate);
-            }
-
-            var auctions = await query.ToListAsync();
+                .ToListAsync();
 
             return auctions.Select(MapToDetailDto);
         }

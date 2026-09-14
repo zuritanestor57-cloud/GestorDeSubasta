@@ -39,14 +39,4 @@ namespace Aplicacion.DTOs
         public List<CategoryDto> Categories { get; set; } = new();
         public int BidsCount { get; set; }
     }
-
-    public class AuctionFilterDto
-    {
-        public string? SearchTerm { get; set; }
-        public int? CategoryId { get; set; }
-        public AuctionStatus? Status { get; set; }
-        public decimal? MinPrice { get; set; }
-        public decimal? MaxPrice { get; set; }
-        public string? OrderBy { get; set; }
-    }
 }
