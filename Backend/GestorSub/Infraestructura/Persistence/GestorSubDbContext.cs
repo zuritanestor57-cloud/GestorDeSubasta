@@ -9,7 +9,7 @@ namespace Infraestructura.Persistence
 {
     internal class GestorSubDbContext : DbContext
     {
-        public GestorSubDbContext(DbContextOptions<GestorSubDbContext> options) : base(options) {}
+        public GestorSubDbContext(DbContextOptions<GestorSubDbContext> options) : base(options)
         {
             
         }
