@@ -55,12 +55,12 @@ namespace GestorSub.Controllers
         }
 
         /// <summary>
-        /// Obtiene el listado general de subastas.
+        /// Obtiene y filtra el catálogo general de subastas según búsqueda, estado, categoría, rango de precios y ordenamiento (RF-05 a RF-10).
         /// </summary>
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<AuctionDetailDto>>> GetAll()
+        public async Task<ActionResult<IEnumerable<AuctionDetailDto>>> GetAll([FromQuery] AuctionFilterDto filterDto)
         {
-            var auctions = await _auctionService.GetAllAuctionsAsync();
+            var auctions = await _auctionService.GetAllAuctionsAsync(filterDto);
             return Ok(auctions);
         }
 
