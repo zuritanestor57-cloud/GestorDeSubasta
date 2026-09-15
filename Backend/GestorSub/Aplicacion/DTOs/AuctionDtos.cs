@@ -49,4 +49,23 @@ namespace Aplicacion.DTOs
         public decimal? MaxPrice { get; set; }
         public string? OrderBy { get; set; }
     }
+    public class CreateBidDto
+    {
+        public int UserId { get; set; }
+        public decimal Amount { get; set; }
+    }
+
+    public class BidResultDto
+    {
+        public int BidId { get; set; }
+        public int AuctionId { get; set; }
+        public int UserId { get; set; }
+        public string BidderName { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime NewEndDate { get; set; }
+        public bool AntiSnipingTriggered { get; set; }
+        public string Message { get; set; } = string.Empty;
+    }
+
 }
