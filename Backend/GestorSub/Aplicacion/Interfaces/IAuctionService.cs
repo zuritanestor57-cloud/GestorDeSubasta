@@ -28,5 +28,10 @@ namespace Aplicacion.Interfaces
         /// Obtiene las categorías de productos disponibles.
         /// </summary>
         Task<IEnumerable<CategoryDto>> GetCategoriesAsync();
+
+        /// <summary>
+        /// Registra una nueva oferta económica con escrow automático y regla anti-sniping.
+        /// </summary>
+        Task<BidResultDto> PlaceBidAsync(int auctionId, CreateBidDto bidDto);
     }
 }
