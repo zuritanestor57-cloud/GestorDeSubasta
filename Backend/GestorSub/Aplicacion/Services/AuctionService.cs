@@ -75,6 +75,16 @@ namespace Aplicacion.Services
             _context.Auctions.Add(newAuction);
             await _context.SaveChangesAsync();
 
+            // Auditoría (RF-Audit): Registrar creación de subasta
+            _context.AuditLogs.Add(new AuditLog
+            {
+                Event = "AuctionCreated",
+                Details = $"Subasta ID {newAuction.Id} ('{newAuction.Product?.Title}') creada por el usuario ID {newAuction.UserId}.",
+                CreatedAt = DateTime.Now,
+                UserId = newAuction.UserId
+            });
+            await _context.SaveChangesAsync();
+
             return MapToDetailDto(newAuction);
         }
 
@@ -180,6 +190,15 @@ namespace Aplicacion.Services
             auction.Status = AuctionStatus.Cancelled;
             auction.Version += 1;
 
+            // Auditoría (RF-Audit): Registrar cancelación de subasta
+            _context.AuditLogs.Add(new AuditLog
+            {
+                Event = "AuctionCancelled",
+                Details = $"Subasta ID {auctionId} cancelada por el vendedor ID {sellerUserId}.",
+                CreatedAt = DateTime.Now,
+                UserId = sellerUserId
+            });
+
             await _context.SaveChangesAsync();
             return true;
         }
@@ -275,14 +294,14 @@ namespace Aplicacion.Services
                 previousTopBid = auction.Bids!.OrderByDescending(b => b.Amount).FirstOrDefault();
             }
 
-            // Congelar fondos del nuevo postor (escrow)
-            await _walletService.HoldFundsAsync(bidDto.UserId, bidDto.Amount);
-
-            // Liberar fondos del postor anterior (si aplica y es distinto)
-            if (previousTopBid != null && previousTopBid.UserId != bidDto.UserId)
+            // Liberar fondos retenidos de la puja previa (si existía)
+            if (previousTopBid != null)
             {
                 await _walletService.ReleaseFundsAsync(previousTopBid.UserId, previousTopBid.Amount);
             }
+
+            // Congelar fondos del nuevo postor (escrow)
+            await _walletService.HoldFundsAsync(bidDto.UserId, bidDto.Amount);
 
             // Crear y asociar la nueva puja
             var newBid = new Bid
@@ -294,6 +313,15 @@ namespace Aplicacion.Services
             };
 
             _context.Bids.Add(newBid);
+
+            // Auditoría (RF-Audit): Registrar puja realizada
+            _context.AuditLogs.Add(new AuditLog
+            {
+                Event = "BidPlaced",
+                Details = $"Puja realizada en subasta ID {auction.Id} por el monto de ${bidDto.Amount} por el usuario ID {bidDto.UserId}.",
+                CreatedAt = now,
+                UserId = bidDto.UserId
+            });
 
             // Asegurar colección de pujas no nula
             if (auction.Bids == null)

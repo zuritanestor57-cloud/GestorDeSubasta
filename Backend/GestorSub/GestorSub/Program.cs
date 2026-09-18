@@ -1,5 +1,6 @@
-﻿using Aplicacion.Interfaces;
+using Aplicacion.Interfaces;
 using Aplicacion.Services;
+using GestorSub.Services;
 using Infraestructura;
 using Infraestructura.SeedData;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +26,9 @@ builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<Ap
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuctionService, AuctionService>();
 builder.Services.AddScoped<IWalletService, WalletService>();
+
+// Servicio en segundo plano para monitoreo y cierre automático de subastas
+builder.Services.AddHostedService<AuctionBackgroundService>();
 
 var app = builder.Build();
 
