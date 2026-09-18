@@ -1,3 +1,5 @@
+ï»¿using Aplicacion.Interfaces;
+using Aplicacion.Services;
 using Infraestructura;
 using Infraestructura.SeedData;
 using Microsoft.EntityFrameworkCore;
@@ -9,14 +11,23 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-
-// ejecutable de migraciones: 
+// Base de datos y DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection"),
-        b => b.MigrationsAssembly("Infraestructura") // nombre del proyecto donde está el DbContext
+        b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.GetName().Name)
     ));
+
+// Inyeccion de dependencias: Persistencia
+builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
+
+// Inyeccion de dependencias: Servicios de Aplicacion
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IAuctionService, AuctionService>();
+builder.Services.AddScoped<IWalletService, WalletService>();
+
 var app = builder.Build();
+
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
