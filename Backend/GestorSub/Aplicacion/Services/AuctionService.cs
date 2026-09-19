@@ -8,10 +8,12 @@ namespace Aplicacion.Services
     public class AuctionService : IAuctionService
     {
         private readonly IApplicationDbContext _context;
+        private readonly IAuditService _auditService;
 
-        public AuctionService(IApplicationDbContext context)
+        public AuctionService(IApplicationDbContext context, IAuditService auditService)
         {
             _context = context;
+            _auditService = auditService;
         }
 
         public async Task<AuctionDetailDto> CreateAuctionAsync(CreateAuctionDto createDto)
@@ -72,6 +74,13 @@ namespace Aplicacion.Services
 
             _context.Auctions.Add(newAuction);
             await _context.SaveChangesAsync();
+
+            // RF-48: Registrar en la bitácora de auditoría
+            await _auditService.LogAsync(
+                "SUBASTA_CREADA",
+                $"Subasta ID {newAuction.Id} ('{newProduct.Title}') creada y publicada por el usuario ID {createDto.UserId}. Precio base: ${newAuction.BasePrice:F2}.",
+                createDto.UserId
+            );
 
             return MapToDetailDto(newAuction);
         }
@@ -179,6 +188,14 @@ namespace Aplicacion.Services
             auction.Version += 1;
 
             await _context.SaveChangesAsync();
+
+            // RF-48: Registrar en la bitácora de auditoría
+            await _auditService.LogAsync(
+                "SUBASTA_CANCELADA",
+                $"Subasta ID {auctionId} cancelada por el vendedor ID {sellerUserId}.",
+                sellerUserId
+            );
+
             return true;
         }
 

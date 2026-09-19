@@ -1,3 +1,6 @@
+using Aplicacion.Interfaces;
+using Aplicacion.Services;
+using GestorSub;
 using Infraestructura;
 using Infraestructura.SeedData;
 using Microsoft.EntityFrameworkCore;
@@ -9,14 +12,26 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-
 // ejecutable de migraciones: 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection"),
-        b => b.MigrationsAssembly("Infraestructura") // nombre del proyecto donde est� el DbContext
+        b => b.MigrationsAssembly("Infraestructura")
     ));
+
+// Inyección de dependencias de la arquitectura por capas
+builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
+builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IWalletService, WalletService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IAuctionService, AuctionService>();
+builder.Services.AddScoped<IAuctionFinalizerService, AuctionFinalizerService>();
+
+// Proceso en segundo plano para expiración automática de subastas (RF-45)
+builder.Services.AddHostedService<AuctionFinalizerWorker>();
+
 var app = builder.Build();
+
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
