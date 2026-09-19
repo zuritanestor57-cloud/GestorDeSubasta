@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Prueba de SignalR - Subastas</title>
+    <!-- Referencia al cliente SignalR (CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        #log {
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 300px;
+            overflow-y: scroll;
+            margin-top: 10px;
+            background-color: #f9f9f9;
+        }
+
+        .message {
+            border-bottom: 1px solid #eee;
+            padding: 5px 0;
+        }
+
+        input,
+        button {
+            padding: 8px;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Cliente de Prueba SignalR (AuctionHub)</h2>
+
+    <div>
+        <label>URL del Backend (Asegurate de que el puerto sea el correcto): </label><br>
+        <input type="text" id="urlInput" value="https://localhost:7154/hubs/auction" style="width: 300px;" />
+        <button onclick="conectar()">Conectar</button>
+        <button onclick="desconectar()" disabled id="btnDesconectar">Desconectar</button>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <h3>Eventos Recibidos:</h3>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        let connection = null;
+
+        function logMensaje(mensaje, color = 'black') {
+            const logDiv = document.getElementById('log');
+            const p = document.createElement('p');
+            p.className = 'message';
+            p.style.color = color;
+            p.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${mensaje}`;
+            logDiv.appendChild(p);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        async function conectar() {
+            const url = document.getElementById('urlInput').value;
+
+            connection = new signalR.HubConnectionBuilder()
+                .withUrl(url)
+                .withAutomaticReconnect()
+                .configureLogging(signalR.LogLevel.Information)
+                .build();
+
+            // Aquí nos suscribimos a los eventos que el backend emite
+            // Reemplaza 'ReceiveNewBid', 'AuctionEnded' con los métodos reales de tu Hub/IAuctionEventNotifier
+            connection.on("ReceiveBid", (auctionId, amount, user) => {
+                logMensaje(`Nueva Oferta - Subasta: ${auctionId}, Monto: $${amount}, Usuario: ${user}`, 'green');
+            });
+
+            connection.on("AuctionFinished", (auctionId, winner, finalPrice) => {
+                logMensaje(`Subasta Finalizada - Subasta: ${auctionId}, Ganador: ${winner}, Precio: $${finalPrice}`, 'blue');
+            });
+
+            // Agrega más listeners de eventos según lo necesites
+            // connection.on("NombreDelEvento", (param1, param2) => { ... });
+
+            try {
+                await connection.start();
+                logMensaje("Conectado exitosamente al Hub de Subastas.", "green");
+                document.getElementById('btnDesconectar').disabled = false;
+            } catch (err) {
+                logMensaje("Error al conectar: " + err.toString(), "red");
+                console.error(err);
+            }
+        }
+
+        async function desconectar() {
+            if (connection) {
+                await connection.stop();
+                logMensaje("Desconectado.", "orange");
+                document.getElementById('btnDesconectar').disabled = true;
+            }
+        }
+    </script>
+</body>
+
+</html>

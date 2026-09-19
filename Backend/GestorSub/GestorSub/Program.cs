@@ -5,6 +5,7 @@ using GestorSub.Services;
 using Infraestructura;
 using Infraestructura.SeedData;
 using Microsoft.EntityFrameworkCore;
+using GestorSub.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,19 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddSignalR();
+
+// Habilitar CORS para poder probar SignalR desde archivos locales u otro frontend
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.SetIsOriginAllowed(_ => true) // Permite el html local
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials(); // SignalR necesita credenciales
+    });
+});
 
 // Base de datos y DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -30,6 +44,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuctionService, AuctionService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IAuctionFinalizerService, AuctionFinalizerService>();
+builder.Services.AddScoped<IAuctionEventNotifier, AuctionEventNotifier>();
 
 // Proceso en segundo plano para expiración automática de subastas (RF-45)
 builder.Services.AddHostedService<AuctionFinalizerWorker>();
@@ -54,8 +69,11 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseCors("AllowAll"); // <-- Aplicar política CORS ANTES de la autorización y MapHub
+
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<AuctionHub>("/hubs/auction");
 
 app.Run();

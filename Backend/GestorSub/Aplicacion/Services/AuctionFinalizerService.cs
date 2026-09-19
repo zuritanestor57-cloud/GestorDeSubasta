@@ -9,34 +9,54 @@ namespace Aplicacion.Services
         private readonly IApplicationDbContext _context;
         private readonly IWalletService _walletService;
         private readonly IAuditService _auditService;
+        private readonly IAuctionEventNotifier _notifier;
 
         public AuctionFinalizerService(
             IApplicationDbContext context,
             IWalletService walletService,
-            IAuditService auditService)
+            IAuditService auditService,
+            IAuctionEventNotifier notifier)
         {
             _context = context;
             _walletService = walletService;
             _auditService = auditService;
+            _notifier = notifier;
         }
 
         public async Task<int> ProcessExpiredAuctionsAsync()
         {
             var now = DateTime.Now;
 
-            // RF-45: Seleccionar subastas publicadas cuyo tiempo haya expirado
+            // RF-18: Iniciar automáticamente subastas
+            var auctionsToStart = await _context.Auctions
+                .Where(a => a.Status == AuctionStatus.Published && a.StartDate <= now && a.EndDate > now)
+                .ToListAsync();
+
+            foreach (var auction in auctionsToStart)
+            {
+                auction.Status = AuctionStatus.Active;
+                auction.Version += 1;
+                
+                await _notifier.NotifyAuctionStartedAsync(auction.Id, new DTOs.AuctionStartedMessageDto
+                {
+                    AuctionId = auction.Id,
+                    StartedAt = now
+                });
+            }
+
+            // RF-45: Seleccionar subastas publicadas/activas cuyo tiempo haya expirado
             var expiredAuctions = await _context.Auctions
                 .Include(a => a.Bids)
                 .Include(a => a.User)
-                .Where(a => a.Status == AuctionStatus.Published && a.EndDate <= now)
+                .Where(a => (a.Status == AuctionStatus.Published || a.Status == AuctionStatus.Active) && a.EndDate <= now)
                 .ToListAsync();
 
-            if (!expiredAuctions.Any())
+            if (!expiredAuctions.Any() && !auctionsToStart.Any())
             {
                 return 0;
             }
 
-            int processedCount = 0;
+            int processedCount = auctionsToStart.Count;
 
             foreach (var auction in expiredAuctions)
             {
@@ -74,6 +94,13 @@ namespace Aplicacion.Services
                         auction.UserId
                     );
                 }
+
+                // Notificar fin de subasta
+                await _notifier.NotifyAuctionEndedAsync(auction.Id, new DTOs.AuctionEndedMessageDto
+                {
+                    AuctionId = auction.Id,
+                    EndedAt = now
+                });
 
                 processedCount++;
             }
