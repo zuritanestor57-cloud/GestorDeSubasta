@@ -1,5 +1,6 @@
 using Aplicacion.Interfaces;
 using Aplicacion.Services;
+using GestorSub;
 using GestorSub.Services;
 using Infraestructura;
 using Infraestructura.SeedData;
@@ -16,20 +17,22 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection"),
-        b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.GetName().Name)
+        b => b.MigrationsAssembly("Infraestructura")
     ));
 
-// Inyeccion de dependencias: Persistencia
+// Inyección de dependencias: Persistencia
 builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
 
-// Inyeccion de dependencias: Servicios de Aplicacion
+// Inyección de dependencias: Servicios de Aplicación
+builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IWalletService, WalletService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuctionService, AuctionService>();
-builder.Services.AddScoped<IWalletService, WalletService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddScoped<IAuctionFinalizerService, AuctionFinalizerService>();
 
-// Servicio en segundo plano para monitoreo y cierre automático de subastas
-builder.Services.AddHostedService<AuctionBackgroundService>();
+// Proceso en segundo plano para expiración automática de subastas (RF-45)
+builder.Services.AddHostedService<AuctionFinalizerWorker>();
 
 var app = builder.Build();
 

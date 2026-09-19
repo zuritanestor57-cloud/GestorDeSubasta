@@ -9,10 +9,12 @@ namespace GestorSub.Controllers
     public class AuctionsController : ControllerBase
     {
         private readonly IAuctionService _auctionService;
+        private readonly IAuctionFinalizerService _auctionFinalizerService;
 
-        public AuctionsController(IAuctionService auctionService)
+        public AuctionsController(IAuctionService auctionService, IAuctionFinalizerService auctionFinalizerService)
         {
             _auctionService = auctionService;
+            _auctionFinalizerService = auctionFinalizerService;
         }
 
         /// <summary>
@@ -121,6 +123,23 @@ namespace GestorSub.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Ocurrió un error al registrar la puja.", detail = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Ejecuta manualmente el proceso de finalización de subastas expiradas, adjudicación de ganadores o marcado como desiertas (RF-45, RF-46, RF-47, RF-48).
+        /// </summary>
+        [HttpPost("process-expired")]
+        public async Task<ActionResult> ProcessExpiredAuctions()
+        {
+            try
+            {
+                var processed = await _auctionFinalizerService.ProcessExpiredAuctionsAsync();
+                return Ok(new { message = $"Se procesaron {processed} subastas expiradas.", processedCount = processed });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Ocurrió un error al procesar las subastas expiradas.", detail = ex.Message });
             }
         }
     }

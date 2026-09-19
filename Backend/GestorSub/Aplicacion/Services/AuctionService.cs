@@ -9,11 +9,13 @@ namespace Aplicacion.Services
     {
         private readonly IApplicationDbContext _context;
         private readonly IWalletService _walletService;
+        private readonly IAuditService _auditService;
 
-        public AuctionService(IApplicationDbContext context, IWalletService walletService)
+        public AuctionService(IApplicationDbContext context, IWalletService walletService, IAuditService auditService)
         {
             _context = context;
             _walletService = walletService;
+            _auditService = auditService;
         }
 
         public async Task<AuctionDetailDto> CreateAuctionAsync(CreateAuctionDto createDto)
@@ -75,15 +77,12 @@ namespace Aplicacion.Services
             _context.Auctions.Add(newAuction);
             await _context.SaveChangesAsync();
 
-            // Auditoría (RF-Audit): Registrar creación de subasta
-            _context.AuditLogs.Add(new AuditLog
-            {
-                Event = "AuctionCreated",
-                Details = $"Subasta ID {newAuction.Id} ('{newAuction.Product?.Title}') creada por el usuario ID {newAuction.UserId}.",
-                CreatedAt = DateTime.Now,
-                UserId = newAuction.UserId
-            });
-            await _context.SaveChangesAsync();
+            // RF-48: Registrar en la bitácora de auditoría
+            await _auditService.LogAsync(
+                "SUBASTA_CREADA",
+                $"Subasta ID {newAuction.Id} ('{newProduct.Title}') creada y publicada por el usuario ID {createDto.UserId}. Precio base: ${newAuction.BasePrice:F2}.",
+                createDto.UserId
+            );
 
             return MapToDetailDto(newAuction);
         }
@@ -200,6 +199,14 @@ namespace Aplicacion.Services
             });
 
             await _context.SaveChangesAsync();
+
+            // RF-48: Registrar en la bitácora de auditoría
+            await _auditService.LogAsync(
+                "SUBASTA_CANCELADA",
+                $"Subasta ID {auctionId} cancelada por el vendedor ID {sellerUserId}.",
+                sellerUserId
+            );
+
             return true;
         }
 

@@ -8,10 +8,12 @@ namespace Aplicacion.Services
     public class WalletService : IWalletService
     {
         private readonly IApplicationDbContext _context;
+        private readonly IAuditService _auditService;
 
-        public WalletService(IApplicationDbContext context)
+        public WalletService(IApplicationDbContext context, IAuditService auditService)
         {
             _context = context;
+            _auditService = auditService;
         }
 
         public async Task<WalletBalanceDto?> GetBalanceByUserIdAsync(int userId)
@@ -56,6 +58,13 @@ namespace Aplicacion.Services
 
             _context.Transactions.Add(transaction);
             await _context.SaveChangesAsync();
+
+            // RF-48: Registrar en la bitácora de auditoría
+            await _auditService.LogAsync(
+                "SALDO_ACREDITADO",
+                $"Depósito de ${depositDto.Amount:F2} acreditado al usuario ID {depositDto.UserId}.",
+                depositDto.UserId
+            );
 
             return MapToBalanceDto(wallet);
         }
@@ -106,6 +115,13 @@ namespace Aplicacion.Services
             wallet.Version += 1;
 
             await _context.SaveChangesAsync();
+
+            // RF-48: Registrar en la bitácora de auditoría
+            await _auditService.LogAsync(
+                "FONDOS_RETENIDOS",
+                $"Monto de ${amount:F2} retenido en garantía para usuario ID {userId}.",
+                userId
+            );
         }
 
         public async Task ReleaseFundsAsync(int userId, decimal amount)
