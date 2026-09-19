@@ -102,6 +102,31 @@ namespace GestorSub.Controllers
         }
 
         /// <summary>
+        /// Registra una nueva oferta económica con escrow automático y regla anti-sniping.
+        /// </summary>
+        [HttpPost("{id:int}/bids")]
+        public async Task<ActionResult<BidResultDto>> PlaceBid(int id, [FromBody] CreateBidDto bidDto)
+        {
+            try
+            {
+                var result = await _auctionService.PlaceBidAsync(id, bidDto);
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Ocurrió un error al registrar la puja.", detail = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Ejecuta manualmente el proceso de finalización de subastas expiradas, adjudicación de ganadores o marcado como desiertas (RF-45, RF-46, RF-47, RF-48).
         /// </summary>
         [HttpPost("process-expired")]

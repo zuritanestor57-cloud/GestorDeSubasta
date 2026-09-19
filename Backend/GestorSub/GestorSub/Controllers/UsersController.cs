@@ -102,5 +102,49 @@ namespace GestorSub.Controllers
                 return StatusCode(500, new { message = "Ocurrió un error al actualizar el usuario.", detail = ex.Message });
             }
         }
+
+        /// <summary>
+        /// Obtiene el resumen consolidado del Panel de Usuario con métricas, publicaciones, pujas y victorias (RF-37 a RF-40).
+        /// </summary>
+        [HttpGet("{id:int}/dashboard")]
+        public async Task<ActionResult<UserDashboardDto>> GetDashboard(int id)
+        {
+            var dashboard = await _userService.GetUserDashboardAsync(id);
+            if (dashboard == null)
+            {
+                return NotFound(new { message = $"No se encontró el usuario con ID {id}." });
+            }
+            return Ok(dashboard);
+        }
+
+        /// <summary>
+        /// Obtiene el listado de publicaciones creadas por el vendedor con su estado y recaudación (RF-39, RF-40).
+        /// </summary>
+        [HttpGet("{id:int}/auctions")]
+        public async Task<ActionResult<IEnumerable<UserAuctionSummaryDto>>> GetUserAuctions(int id)
+        {
+            var auctions = await _userService.GetUserAuctionsAsync(id);
+            return Ok(auctions);
+        }
+
+        /// <summary>
+        /// Obtiene el listado de subastas en las que participó el usuario con su estado de participación (RF-37, RF-38).
+        /// </summary>
+        [HttpGet("{id:int}/bids")]
+        public async Task<ActionResult<IEnumerable<UserBidSummaryDto>>> GetUserBids(int id)
+        {
+            var bids = await _userService.GetUserBidsAsync(id);
+            return Ok(bids);
+        }
+
+        /// <summary>
+        /// Obtiene el listado de subastas ganadas por el usuario (RF-38).
+        /// </summary>
+        [HttpGet("{id:int}/won-auctions")]
+        public async Task<ActionResult<IEnumerable<UserAuctionSummaryDto>>> GetUserWonAuctions(int id)
+        {
+            var wonAuctions = await _userService.GetUserWonAuctionsAsync(id);
+            return Ok(wonAuctions);
+        }
     }
 }

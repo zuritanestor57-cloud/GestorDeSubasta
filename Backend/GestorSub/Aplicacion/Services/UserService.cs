@@ -68,6 +68,15 @@ namespace Aplicacion.Services
                 };
             }
 
+            if (!user.IsActive)
+            {
+                return new LoginResultDto
+                {
+                    Success = false,
+                    Message = "Su cuenta se encuentra suspendida por un administrador."
+                };
+            }
+
             return new LoginResultDto
             {
                 Success = true,
@@ -160,6 +169,131 @@ namespace Aplicacion.Services
             return MapToUserDto(user);
         }
 
+        public async Task<UserDashboardDto?> GetUserDashboardAsync(int userId)
+        {
+            var user = await GetUserByIdAsync(userId);
+            if (user == null) return null;
+
+            var createdAuctions = (await GetUserAuctionsAsync(userId)).ToList();
+            var myBids = (await GetUserBidsAsync(userId)).ToList();
+            var wonAuctions = (await GetUserWonAuctionsAsync(userId)).ToList();
+
+            return new UserDashboardDto
+            {
+                UserInfo = user,
+                ActiveAuctionsCreatedCount = createdAuctions.Count(a => a.Status == AuctionStatus.Published.ToString()),
+                TotalAuctionsCreatedCount = createdAuctions.Count,
+                ActiveBidsCount = myBids.Count(b => b.AuctionStatus == AuctionStatus.Published.ToString()),
+                WonAuctionsCount = wonAuctions.Count,
+                MyCreatedAuctions = createdAuctions,
+                MyBids = myBids,
+                MyWonAuctions = wonAuctions
+            };
+        }
+
+        public async Task<IEnumerable<UserAuctionSummaryDto>> GetUserAuctionsAsync(int userId)
+        {
+            var auctions = await _context.Auctions
+                .Include(a => a.Product)
+                .Include(a => a.Bids)
+                .Where(a => a.UserId == userId)
+                .OrderByDescending(a => a.StartDate)
+                .AsNoTracking()
+                .ToListAsync();
+
+            return auctions.Select(a => new UserAuctionSummaryDto
+            {
+                AuctionId = a.Id,
+                ProductTitle = a.Product?.Title ?? string.Empty,
+                ProductImageUrl = a.Product?.ImageUrl ?? string.Empty,
+                BasePrice = a.BasePrice,
+                CurrentBid = a.CurrentBid,
+                TotalBidsCount = a.Bids?.Count ?? 0,
+                Status = a.Status.ToString(),
+                StartDate = a.StartDate,
+                EndDate = a.EndDate
+            });
+        }
+
+        public async Task<IEnumerable<UserBidSummaryDto>> GetUserBidsAsync(int userId)
+        {
+            var auctionsWithUserBids = await _context.Auctions
+                .Include(a => a.Product)
+                .Include(a => a.Bids)
+                .Where(a => a.Bids.Any(b => b.UserId == userId))
+                .OrderByDescending(a => a.EndDate)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var result = new List<UserBidSummaryDto>();
+
+            foreach (var auction in auctionsWithUserBids)
+            {
+                var userBids = auction.Bids.Where(b => b.UserId == userId).ToList();
+                var myHighestBid = userBids.Max(b => b.Amount);
+                var currentHighestBid = auction.Bids.Max(b => b.Amount);
+
+                var topBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
+                bool isLeading = topBid != null && topBid.UserId == userId;
+
+                string participationStatus;
+                if (auction.Status == AuctionStatus.Finished)
+                {
+                    participationStatus = isLeading ? "Ganada" : "Perdida";
+                }
+                else if (auction.Status == AuctionStatus.Published)
+                {
+                    participationStatus = isLeading ? "Liderando" : "Superado";
+                }
+                else
+                {
+                    participationStatus = "Finalizada";
+                }
+
+                result.Add(new UserBidSummaryDto
+                {
+                    AuctionId = auction.Id,
+                    ProductTitle = auction.Product?.Title ?? string.Empty,
+                    ProductImageUrl = auction.Product?.ImageUrl ?? string.Empty,
+                    MyHighestBid = myHighestBid,
+                    CurrentHighestBid = currentHighestBid,
+                    IsLeading = isLeading,
+                    AuctionStatus = auction.Status.ToString(),
+                    ParticipationStatus = participationStatus,
+                    EndDate = auction.EndDate
+                });
+            }
+
+            return result;
+        }
+
+        public async Task<IEnumerable<UserAuctionSummaryDto>> GetUserWonAuctionsAsync(int userId)
+        {
+            var finishedAuctions = await _context.Auctions
+                .Include(a => a.Product)
+                .Include(a => a.Bids)
+                .Where(a => a.Status == AuctionStatus.Finished && a.Bids.Any())
+                .AsNoTracking()
+                .ToListAsync();
+
+            var wonAuctions = finishedAuctions
+                .Where(a => a.Bids.OrderByDescending(b => b.Amount).FirstOrDefault()?.UserId == userId)
+                .OrderByDescending(a => a.EndDate);
+
+            return wonAuctions.Select(a => new UserAuctionSummaryDto
+            {
+                AuctionId = a.Id,
+                ProductTitle = a.Product?.Title ?? string.Empty,
+                ProductImageUrl = a.Product?.ImageUrl ?? string.Empty,
+                BasePrice = a.BasePrice,
+                CurrentBid = a.CurrentBid,
+                TotalBidsCount = a.Bids?.Count ?? 0,
+                Status = a.Status.ToString(),
+                StartDate = a.StartDate,
+                EndDate = a.EndDate
+            });
+        }
+
         private static UserDto MapToUserDto(User user)
         {
             return new UserDto
@@ -168,6 +302,7 @@ namespace Aplicacion.Services
                 Name = user.Name,
                 Email = user.Email,
                 Role = user.Role.ToString(),
+                IsActive = user.IsActive,
                 WalletId = user.Wallet?.Id ?? 0,
                 TotalBalance = user.Wallet?.TotalBalance ?? 0m,
                 HeldBalance = user.Wallet?.HeldBalance ?? 0m,
