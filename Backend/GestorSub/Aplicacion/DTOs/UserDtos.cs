@@ -8,6 +8,7 @@ namespace Aplicacion.DTOs
         public string Name { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
+        public bool IsActive { get; set; } = true;
         public int WalletId { get; set; }
         public decimal TotalBalance { get; set; }
         public decimal HeldBalance { get; set; }

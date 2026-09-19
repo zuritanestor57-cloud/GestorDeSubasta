@@ -68,6 +68,15 @@ namespace Aplicacion.Services
                 };
             }
 
+            if (!user.IsActive)
+            {
+                return new LoginResultDto
+                {
+                    Success = false,
+                    Message = "Su cuenta se encuentra suspendida por un administrador."
+                };
+            }
+
             return new LoginResultDto
             {
                 Success = true,
@@ -293,6 +302,7 @@ namespace Aplicacion.Services
                 Name = user.Name,
                 Email = user.Email,
                 Role = user.Role.ToString(),
+                IsActive = user.IsActive,
                 WalletId = user.Wallet?.Id ?? 0,
                 TotalBalance = user.Wallet?.TotalBalance ?? 0m,
                 HeldBalance = user.Wallet?.HeldBalance ?? 0m,

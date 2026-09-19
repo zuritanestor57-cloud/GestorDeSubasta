@@ -26,6 +26,7 @@ builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<Ap
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuctionService, AuctionService>();
 builder.Services.AddScoped<IWalletService, WalletService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
 
 // Servicio en segundo plano para monitoreo y cierre automático de subastas
 builder.Services.AddHostedService<AuctionBackgroundService>();
