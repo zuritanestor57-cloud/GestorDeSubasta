@@ -11,7 +11,7 @@ namespace Infraestructura.Persistence
     {
         public GestorSubDbContext(DbContextOptions<GestorSubDbContext> options) : base(options)
         {
-            
+            /// un borrador sin implementar, simplemente  
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

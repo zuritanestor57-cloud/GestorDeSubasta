@@ -32,7 +32,20 @@ builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IAuctionFinalizerService, AuctionFinalizerService>();
 
 // Proceso en segundo plano para expiración automática de subastas (RF-45)
-builder.Services.AddHostedService<AuctionFinalizerWorker>();
+builder.Services.AddHostedService<AuctionBackgroundService>();
+
+// -------------------------------------------------------------
+// Habilitar CORS para permitir conexión del Frontend (React/Vite)
+// -------------------------------------------------------------
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 var app = builder.Build();
 
@@ -51,6 +64,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// -------------------------------------------------------------
+// Middleware de CORS activado para la API
+// -------------------------------------------------------------
+app.UseCors("AllowFrontend");
 
 app.UseHttpsRedirection();
 

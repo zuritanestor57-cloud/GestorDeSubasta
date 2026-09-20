@@ -15,11 +15,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Aplicacion\Aplicacion.csproj" />
-    <ProjectReference Include="..\Infraestructura\Infraestructura.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Infraestructura\Infraestructura.csproj" />
   </ItemGroup>
 

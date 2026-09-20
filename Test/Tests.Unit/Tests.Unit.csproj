@@ -16,14 +16,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="Xunit" />
+    <ProjectReference Include="..\..\Backend\GestorSub\GestorSub\GestorSub.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Backend\GestorSub\Domain\Domain.csproj" />
-    <ProjectReference Include="..\..\Backend\GestorSub\Aplicacion\Aplicacion.csproj" />
-    <ProjectReference Include="..\..\Backend\GestorSub\Infraestructura\Infraestructura.csproj" />
-    <ProjectReference Include="..\..\Backend\GestorSub\GestorSub\GestorSub.csproj" />
+    <Using Include="Xunit" />
   </ItemGroup>
 
 </Project>
