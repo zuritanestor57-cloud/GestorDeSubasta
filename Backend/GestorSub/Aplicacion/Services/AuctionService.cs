@@ -10,12 +10,18 @@ namespace Aplicacion.Services
         private readonly IApplicationDbContext _context;
         private readonly IWalletService _walletService;
         private readonly IAuditService _auditService;
+        private readonly IAuctionEventNotifier _notifier;
 
-        public AuctionService(IApplicationDbContext context, IWalletService walletService, IAuditService auditService)
+        public AuctionService(
+            IApplicationDbContext context, 
+            IWalletService walletService, 
+            IAuditService auditService,
+            IAuctionEventNotifier notifier)
         {
             _context = context;
             _walletService = walletService;
             _auditService = auditService;
+            _notifier = notifier;
         }
 
         public async Task<AuctionDetailDto> CreateAuctionAsync(CreateAuctionDto createDto)
@@ -259,9 +265,9 @@ namespace Aplicacion.Services
                 throw new InvalidOperationException($"No se encontró la subasta con ID {auctionId}.");
             }
 
-            if (auction.Status != AuctionStatus.Published)
+            if (auction.Status != AuctionStatus.Published && auction.Status != AuctionStatus.Active)
             {
-                throw new InvalidOperationException("La subasta no está publicada.");
+                throw new InvalidOperationException("La subasta no está disponible para pujar.");
             }
 
             if (now < auction.StartDate)
@@ -355,13 +361,37 @@ namespace Aplicacion.Services
 
             // Obtener nombre del postor para respuesta
             var bidder = await _context.Users.FirstOrDefaultAsync(u => u.Id == bidDto.UserId);
+            var bidderName = bidder?.Name ?? string.Empty;
+
+            // RF-19, RF-27: Notificar a través de Observer/SignalR
+            var minimumNextBid = auction.CurrentBid + auction.MinimumIncrement;
+            
+            await _notifier.NotifyBidPlacedAsync(auction.Id, new BidPlacedMessageDto
+            {
+                AuctionId = auction.Id,
+                BidId = newBid.Id,
+                UserId = bidDto.UserId,
+                BidderName = bidderName,
+                Amount = newBid.Amount,
+                CreatedAt = newBid.CreatedAt,
+                MinimumNextBid = minimumNextBid
+            });
+
+            if (antiSnipingTriggered)
+            {
+                await _notifier.NotifyTimeExtendedAsync(auction.Id, new TimeExtendedMessageDto
+                {
+                    AuctionId = auction.Id,
+                    NewEndDate = auction.EndDate
+                });
+            }
 
             return new BidResultDto
             {
                 BidId = newBid.Id,
                 AuctionId = auction.Id,
                 UserId = bidDto.UserId,
-                BidderName = bidder?.Name ?? string.Empty,
+                BidderName = bidderName,
                 Amount = newBid.Amount,
                 CreatedAt = newBid.CreatedAt,
                 NewEndDate = auction.EndDate,
