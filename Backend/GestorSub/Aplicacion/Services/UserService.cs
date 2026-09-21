@@ -108,23 +108,20 @@ namespace Aplicacion.Services
                 Role = createUserDto.Role
             };
 
-            _context.Users.Add(newUser);
-            await _context.SaveChangesAsync();
-
-            // Creación automática de la billetera virtual inicializada en $0
             var newWallet = new Wallet
             {
-                UserId = newUser.Id,
                 TotalBalance = 0m,
                 HeldBalance = 0m,
                 AvailableBalance = 0m,
-                Version = 1
+                Version = 1,
+                User = newUser
             };
 
-            _context.Wallets.Add(newWallet);
+            newUser.Wallet = newWallet;
+
+            _context.Users.Add(newUser);
             await _context.SaveChangesAsync();
 
-            newUser.Wallet = newWallet;
             return MapToUserDto(newUser);
         }
 
