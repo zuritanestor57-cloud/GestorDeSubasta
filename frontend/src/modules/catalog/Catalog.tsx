@@ -9,6 +9,7 @@ import {
   PackageOpen,
   AlertTriangle,
   X,
+  Plus,
 } from 'lucide-react';
 import { useAuctions, useCategories } from './hooks/useAuctions';
 import { CardAuction } from './components/CardAuction';
@@ -17,6 +18,9 @@ import type { AuctionFilters } from './types';
 
 export const Catalog: React.FC = () => {
   const navigate = useNavigate();
+
+  // TODO: Obtener rol real del usuario desde AuthContext/Backend
+  const IS_SELLER = true; // Simulación de rol vendedor
 
   // Estados de filtros
   const [filters, setFilters] = useState<AuctionFilters>({
@@ -117,8 +121,31 @@ export const Catalog: React.FC = () => {
             </div>
           </form>
 
-          {/* Notificaciones y Avatar Derecha */}
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Botones de Acción, Notificaciones y Avatar Derecha */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {IS_SELLER && (
+              <Button
+                type="button"
+                onClick={() => navigate('/auction/create')}
+                className="hidden sm:flex items-center gap-2 py-2 px-3 shadow-lg shadow-[#2F8CFF]/20"
+              >
+                <Plus size={16} />
+                <span className="text-xs font-semibold">Publicar Subasta</span>
+              </Button>
+            )}
+
+            {/* Versión Móvil de Publicar Subasta */}
+            {IS_SELLER && (
+              <button
+                type="button"
+                onClick={() => navigate('/auction/create')}
+                className="sm:hidden p-2.5 rounded-xl bg-[#2F8CFF] text-white shadow-lg shadow-[#2F8CFF]/20"
+                aria-label="Publicar Subasta"
+              >
+                <Plus size={18} />
+              </button>
+            )}
+
             <button
               type="button"
               className="relative p-2.5 rounded-xl bg-[#0B0B12] border border-[#1F2937] text-slate-300 hover:text-white hover:border-slate-600 transition-colors cursor-pointer"
