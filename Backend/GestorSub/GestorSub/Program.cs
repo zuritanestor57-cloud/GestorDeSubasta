@@ -10,7 +10,8 @@ using GestorSub.Hubs;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
+// Learn more about configuring Swagger----->/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR();
@@ -46,8 +47,8 @@ builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IAuctionFinalizerService, AuctionFinalizerService>();
 builder.Services.AddScoped<IAuctionEventNotifier, AuctionEventNotifier>();
 
-// Proceso en segundo plano para expiración automática de subastas (RF-45)
-builder.Services.AddHostedService<AuctionBackgroundService>();
+// Proceso en segundo plano para expiración automática de subastas (2.3 / RF-45 a RF-47)
+builder.Services.AddHostedService<AuctionFinalizerWorker>();
 
 // -------------------------------------------------------------
 // Habilitar CORS para permitir conexión del Frontend (React/Vite)
@@ -92,6 +93,7 @@ app.UseCors("AllowAll"); // <-- Aplicar política CORS ANTES de la autorización
 app.UseAuthorization();
 
 app.MapControllers();
+
 app.MapHub<AuctionHub>("/hubs/auction");
 
-app.Run();
+app.Run(); 

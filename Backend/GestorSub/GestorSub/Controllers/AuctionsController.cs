@@ -1,4 +1,5 @@
 using Aplicacion.DTOs;
+using Aplicacion.Exceptions;
 using Aplicacion.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,12 +10,10 @@ namespace GestorSub.Controllers
     public class AuctionsController : ControllerBase
     {
         private readonly IAuctionService _auctionService;
-        private readonly IAuctionFinalizerService _auctionFinalizerService;
 
-        public AuctionsController(IAuctionService auctionService, IAuctionFinalizerService auctionFinalizerService)
+        public AuctionsController(IAuctionService auctionService)
         {
             _auctionService = auctionService;
-            _auctionFinalizerService = auctionFinalizerService;
         }
 
         /// <summary>
@@ -67,9 +66,9 @@ namespace GestorSub.Controllers
         }
 
         /// <summary>
-        /// Cancela una subasta creada por el vendedor únicamente si no posee ofertas (RF-17).
+        /// Cancela (elimina) una subasta creada por el vendedor únicamente si no posee ofertas (RF-17).
         /// </summary>
-        [HttpDelete("{id:int}/cancel")]
+        [HttpDelete("{id:int}")]
         public async Task<IActionResult> Cancel(int id, [FromQuery] int sellerUserId)
         {
             try
@@ -89,6 +88,16 @@ namespace GestorSub.Controllers
             {
                 return StatusCode(500, new { message = "Ocurrió un error al intentar cancelar la subasta.", detail = ex.Message });
             }
+        }
+
+        /// <summary>
+        /// Obtiene el historial de pujas de una subasta, ordenado de mayor a menor monto.
+        /// </summary>
+        [HttpGet("{id:int}/bids")]
+        public async Task<ActionResult<IEnumerable<BidDto>>> GetBids(int id)
+        {
+            var bids = await _auctionService.GetBidsForAuctionAsync(id);
+            return Ok(bids);
         }
 
         /// <summary>
@@ -120,26 +129,14 @@ namespace GestorSub.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+            catch (ConflictException ex)
+            {
+                // 3.1: conflicto de concurrencia optimista (Version) -> 409, no 500 genérico.
+                return Conflict(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Ocurrió un error al registrar la puja.", detail = ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// Ejecuta manualmente el proceso de finalización de subastas expiradas, adjudicación de ganadores o marcado como desiertas (RF-45, RF-46, RF-47, RF-48).
-        /// </summary>
-        [HttpPost("process-expired")]
-        public async Task<ActionResult> ProcessExpiredAuctions()
-        {
-            try
-            {
-                var processed = await _auctionFinalizerService.ProcessExpiredAuctionsAsync();
-                return Ok(new { message = $"Se procesaron {processed} subastas expiradas.", processedCount = processed });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Ocurrió un error al procesar las subastas expiradas.", detail = ex.Message });
             }
         }
     }

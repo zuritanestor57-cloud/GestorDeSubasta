@@ -1,4 +1,5 @@
 using Aplicacion.DTOs;
+using Aplicacion.Exceptions;
 using Aplicacion.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,10 +10,12 @@ namespace GestorSub.Controllers
     public class AdminController : ControllerBase
     {
         private readonly IAdminService _adminService;
+        private readonly IAuctionFinalizerService _auctionFinalizerService;
 
-        public AdminController(IAdminService adminService)
+        public AdminController(IAdminService adminService, IAuctionFinalizerService auctionFinalizerService)
         {
             _adminService = adminService;
+            _auctionFinalizerService = auctionFinalizerService;
         }
 
         /// <summary>
@@ -114,7 +117,7 @@ namespace GestorSub.Controllers
         /// <summary>
         /// Modera y cancela una subasta por incumplimiento de políticas, liberando garantías (RF-43).
         /// </summary>
-        [HttpPost("auctions/{id:int}/moderate")]
+        [HttpPost("auctions/{id:int}/moderations")]
         public async Task<IActionResult> ModerateAuction(int id, [FromBody] ModerateAuctionDto dto)
         {
             try
@@ -130,9 +133,33 @@ namespace GestorSub.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+            catch (ConflictException ex)
+            {
+                // 3.1: conflicto de concurrencia optimista (Version) -> 409, no 500 genérico.
+                return Conflict(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Error al moderar la subasta.", detail = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Ejecuta manualmente un ciclo de cierre/adjudicación de subastas expiradas (RF-45, RF-46, RF-47, RF-48).
+        /// El mismo proceso corre automáticamente en segundo plano (<see cref="GestorSub.AuctionFinalizerWorker"/>);
+        /// este endpoint existe para disparar y verificar un ciclo bajo demanda (ej. pruebas).
+        /// </summary>
+        [HttpPost("auction-closures")]
+        public async Task<ActionResult> CreateAuctionClosure()
+        {
+            try
+            {
+                var processed = await _auctionFinalizerService.ProcessExpiredAuctionsAsync();
+                return Ok(new { message = $"Se procesaron {processed} subastas expiradas.", processedCount = processed });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Ocurrió un error al procesar las subastas expiradas.", detail = ex.Message });
             }
         }
 

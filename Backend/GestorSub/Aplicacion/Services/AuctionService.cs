@@ -1,4 +1,5 @@
 using Aplicacion.DTOs;
+using Aplicacion.Exceptions;
 using Aplicacion.Interfaces;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -195,10 +196,11 @@ namespace Aplicacion.Services
             auction.Status = AuctionStatus.Cancelled;
             auction.Version += 1;
 
-            // Auditoría (RF-Audit): Registrar cancelación de subasta
+            // Auditoría (RF-48): un único registro por cancelación (antes se duplicaba
+            // con dos llamadas equivalentes: un Add directo y _auditService.LogAsync).
             _context.AuditLogs.Add(new AuditLog
             {
-                Event = "AuctionCancelled",
+                Event = "SUBASTA_CANCELADA",
                 Details = $"Subasta ID {auctionId} cancelada por el vendedor ID {sellerUserId}.",
                 CreatedAt = DateTime.Now,
                 UserId = sellerUserId
@@ -206,14 +208,26 @@ namespace Aplicacion.Services
 
             await _context.SaveChangesAsync();
 
-            // RF-48: Registrar en la bitácora de auditoría
-            await _auditService.LogAsync(
-                "SUBASTA_CANCELADA",
-                $"Subasta ID {auctionId} cancelada por el vendedor ID {sellerUserId}.",
-                sellerUserId
-            );
-
             return true;
+        }
+
+        public async Task<IEnumerable<BidDto>> GetBidsForAuctionAsync(int auctionId)
+        {
+            var bids = await _context.Bids
+                .Include(b => b.User)
+                .Where(b => b.AuctionId == auctionId)
+                .OrderByDescending(b => b.Amount)
+                .AsNoTracking()
+                .ToListAsync();
+
+            return bids.Select(b => new BidDto
+            {
+                Id = b.Id,
+                UserId = b.UserId,
+                BidderName = b.User?.Name ?? string.Empty,
+                Amount = b.Amount,
+                CreatedAt = b.CreatedAt
+            });
         }
 
         public async Task<IEnumerable<CategoryDto>> GetCategoriesAsync()
@@ -253,7 +267,6 @@ namespace Aplicacion.Services
         //Implementación escrow y anti-sniping
         public async Task<BidResultDto> PlaceBidAsync(int auctionId, CreateBidDto bidDto)
         {
-          
             var now = DateTime.Now;
             var auction = await _context.Auctions
                 .Include(a => a.Bids)
@@ -265,99 +278,143 @@ namespace Aplicacion.Services
                 throw new InvalidOperationException($"No se encontró la subasta con ID {auctionId}.");
             }
 
-            if (auction.Status != AuctionStatus.Published && auction.Status != AuctionStatus.Active)
+            Bid newBid;
+            bool antiSnipingTriggered;
+
+            // 3.4: toda validación de negocio rechazada a partir de aquí (fondos, estado,
+            // caducidad, concurrencia) queda registrada en el log de auditoría.
+            try
             {
-                throw new InvalidOperationException("La subasta no está disponible para pujar.");
+                if (auction.Status != AuctionStatus.Published && auction.Status != AuctionStatus.Active)
+                {
+                    throw new InvalidOperationException("La subasta no está disponible para pujar.");
+                }
+
+                if (now < auction.StartDate)
+                {
+                    throw new InvalidOperationException("La subasta aún no ha iniciado.");
+                }
+
+                if (now > auction.EndDate)
+                {
+                    throw new InvalidOperationException("La subasta ya ha finalizado.");
+                }
+
+                if (bidDto.UserId == auction.UserId)
+                {
+                    throw new InvalidOperationException("El vendedor no puede pujar en su propia subasta.");
+                }
+
+                var hasBids = auction.Bids != null && auction.Bids.Any();
+                decimal minimumRequired = hasBids ? auction.CurrentBid + auction.MinimumIncrement : auction.BasePrice;
+
+                if (bidDto.Amount < minimumRequired)
+                {
+                    throw new ArgumentException($"El monto ofertado debe ser al menos {minimumRequired}.");
+                }
+
+                // Verificar saldo disponible del postor
+                var balance = await _walletService.GetBalanceByUserIdAsync(bidDto.UserId);
+                if (balance == null || balance.AvailableBalance < bidDto.Amount)
+                {
+                    throw new InvalidOperationException("Saldo insuficiente para realizar la puja.");
+                }
+
+                // Identificar la puja líder previa (si existe)
+                Bid? previousTopBid = null;
+                if (hasBids)
+                {
+                    previousTopBid = auction.Bids!.OrderByDescending(b => b.Amount).FirstOrDefault();
+                }
+
+                // 2.1: liberación de la puja anterior + retención de la nueva + registro de la
+                // puja, todo en UN único bloque transaccional atómico (rollback completo si algo falla).
+                using var transaction = await _context.BeginTransactionAsync();
+                try
+                {
+                    if (previousTopBid != null)
+                    {
+                        await _walletService.ReleaseFundsAsync(previousTopBid.UserId, previousTopBid.Amount);
+                    }
+
+                    await _walletService.HoldFundsAsync(bidDto.UserId, bidDto.Amount);
+
+                    newBid = new Bid
+                    {
+                        Amount = bidDto.Amount,
+                        CreatedAt = now,
+                        UserId = bidDto.UserId,
+                        AuctionId = auction.Id
+                    };
+                    _context.Bids.Add(newBid);
+
+                    _context.AuditLogs.Add(new AuditLog
+                    {
+                        Event = "PUJA_REGISTRADA",
+                        Details = $"Puja realizada en subasta ID {auction.Id} por el monto de ${bidDto.Amount:F2} por el usuario ID {bidDto.UserId}.",
+                        CreatedAt = now,
+                        UserId = bidDto.UserId
+                    });
+
+                    if (auction.Bids == null)
+                        auction.Bids = new List<Bid>();
+
+                    auction.Bids.Add(newBid);
+                    auction.CurrentBid = bidDto.Amount;
+                    auction.Version += 1;
+
+                    // Regla Anti-Sniping: si la puja ocurre en los últimos 60 segundos, extender 2 minutos
+                    antiSnipingTriggered = false;
+                    if ((auction.EndDate - now) <= TimeSpan.FromSeconds(60) && now < auction.EndDate)
+                    {
+                        var previousEndDate = auction.EndDate;
+                        auction.EndDate = auction.EndDate.AddMinutes(2);
+                        antiSnipingTriggered = true;
+
+                        // 2.2 / 3.4: la extensión anti-sniping es un evento crítico auditable propio,
+                        // distinto del registro genérico de la puja.
+                        _context.AuditLogs.Add(new AuditLog
+                        {
+                            Event = "SUBASTA_EXTENDIDA_ANTISNIPING",
+                            Details = $"Subasta ID {auction.Id} extendida de {previousEndDate:HH:mm:ss} a {auction.EndDate:HH:mm:ss} por regla anti-sniping tras la puja del usuario ID {bidDto.UserId}.",
+                            CreatedAt = now,
+                            UserId = bidDto.UserId
+                        });
+                    }
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    await transaction.RollbackAsync();
+                    throw new ConflictException(
+                        $"La subasta ID {auctionId} fue modificada por otra puja concurrente. Reintente la operación.");
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
             }
-
-            if (now < auction.StartDate)
+            catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException)
             {
-                throw new InvalidOperationException("La subasta aún no ha iniciado.");
+                await _auditService.LogAsync(
+                    "PUJA_RECHAZADA",
+                    $"Puja rechazada en subasta ID {auctionId} para el usuario ID {bidDto.UserId}. Motivo: {ex.Message}",
+                    bidDto.UserId
+                );
+                throw;
             }
-
-            if (now > auction.EndDate)
+            catch (ConflictException)
             {
-                throw new InvalidOperationException("La subasta ya ha finalizado.");
+                await _auditService.LogAsync(
+                    "PUJA_RECHAZADA_CONCURRENCIA",
+                    $"Puja rechazada en subasta ID {auctionId} para el usuario ID {bidDto.UserId} por conflicto de concurrencia optimista.",
+                    bidDto.UserId
+                );
+                throw;
             }
-
-            if (bidDto.UserId == auction.UserId)
-            {
-                throw new InvalidOperationException("El vendedor no puede pujar en su propia subasta.");
-            }
-
-            var hasBids = auction.Bids != null && auction.Bids.Any();
-            decimal minimumRequired = hasBids ? auction.CurrentBid + auction.MinimumIncrement : auction.BasePrice;
-
-            if (bidDto.Amount < minimumRequired)
-            {
-                throw new ArgumentException($"El monto ofertado debe ser al menos {minimumRequired}.");
-            }
-
-            // Verificar saldo disponible del postor
-            var balance = await _walletService.GetBalanceByUserIdAsync(bidDto.UserId);
-            if (balance == null || balance.AvailableBalance < bidDto.Amount)
-            {
-                throw new InvalidOperationException("Saldo insuficiente para realizar la puja.");
-            }
-
-            // Identificar la puja líder previa (si existe)
-            Bid? previousTopBid = null;
-            if (hasBids)
-            {
-                previousTopBid = auction.Bids!.OrderByDescending(b => b.Amount).FirstOrDefault();
-            }
-
-            // Liberar fondos retenidos de la puja previa (si existía)
-            if (previousTopBid != null)
-            {
-                await _walletService.ReleaseFundsAsync(previousTopBid.UserId, previousTopBid.Amount);
-            }
-
-            // Congelar fondos del nuevo postor (escrow)
-            await _walletService.HoldFundsAsync(bidDto.UserId, bidDto.Amount);
-
-            // Crear y asociar la nueva puja
-            var newBid = new Bid
-            {
-                Amount = bidDto.Amount,
-                CreatedAt = now,
-                UserId = bidDto.UserId,
-                AuctionId = auction.Id
-            };
-
-            _context.Bids.Add(newBid);
-
-            // Auditoría (RF-Audit): Registrar puja realizada
-            _context.AuditLogs.Add(new AuditLog
-            {
-                Event = "BidPlaced",
-                Details = $"Puja realizada en subasta ID {auction.Id} por el monto de ${bidDto.Amount} por el usuario ID {bidDto.UserId}.",
-                CreatedAt = now,
-                UserId = bidDto.UserId
-            });
-
-            // Asegurar colección de pujas no nula
-            if (auction.Bids == null)
-                auction.Bids = new List<Bid>();
-
-            auction.Bids.Add(newBid);
-            auction.CurrentBid = bidDto.Amount;
-
-            // Regla Anti-Sniping: si la puja ocurre en los últimos 60 segundos, extender 2 minutos
-            bool antiSnipingTriggered = false;
-            if ((auction.EndDate - now) <= TimeSpan.FromSeconds(60) && now < auction.EndDate)
-            {
-                auction.EndDate = auction.EndDate.AddMinutes(2);
-                auction.Version += 1; // incrementar versión por la extensión
-                antiSnipingTriggered = true;
-            }
-            else
-            {
-                auction.Version += 1;
-            }
-
-            // Persistir
-            await _context.SaveChangesAsync();
 
             // Obtener nombre del postor para respuesta
             var bidder = await _context.Users.FirstOrDefaultAsync(u => u.Id == bidDto.UserId);

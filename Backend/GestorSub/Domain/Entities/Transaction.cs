@@ -23,6 +23,8 @@ namespace Domain.Entities
         Deposit,
         Withdrawal,
         Payment,
-        Refund
+        Refund,
+        Hold,
+        Release
     }
 }

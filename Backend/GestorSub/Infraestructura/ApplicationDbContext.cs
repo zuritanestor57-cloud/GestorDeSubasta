@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Aplicacion.Interfaces;
 
 namespace Infraestructura
@@ -15,6 +16,10 @@ namespace Infraestructura
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
         {
         }
+
+        public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
+            => Database.BeginTransactionAsync(cancellationToken);
+
         public DbSet<User> Users { get; set; }
         public DbSet<Auction> Auctions { get; set; }
         public DbSet<Bid> Bids { get; set; }
@@ -75,6 +80,18 @@ namespace Infraestructura
                 .HasOne(a => a.Product)
                 .WithOne(p => p.Auction)
                 .HasForeignKey<Product>("AuctionId");
+
+            // Optimistic Locking (3.1): Version se usa como token de concurrencia real.
+            // EF incluye "WHERE Version = @original" en cada UPDATE; si otra transacción
+            // ya incrementó Version, la actualización afecta 0 filas y EF lanza
+            // DbUpdateConcurrencyException, que los servicios traducen a 409 Conflict.
+            modelBuilder.Entity<Auction>()
+                .Property(a => a.Version)
+                .IsConcurrencyToken();
+
+            modelBuilder.Entity<Wallet>()
+                .Property(w => w.Version)
+                .IsConcurrencyToken();
         }
     }
 }

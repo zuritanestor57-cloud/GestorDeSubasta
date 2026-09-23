@@ -148,7 +148,7 @@ namespace Infraestructura.SeedData
             {
                 Title = "Notebook",
                 Description = "Notebook de prueba para la subasta activa.",
-                ImageUrl = "https://example.com/notebook.jpg",
+                ImageUrl = "https://ststecnologia.com.br/wp-content/uploads/2024/05/78ae5dd6-3847-4e23-8a28-e17ff2dab504.jpg",
                 Auction = Activeauction,
             };
             Activeauction.Product = Activeproduct;
@@ -188,7 +188,7 @@ namespace Infraestructura.SeedData
             {
                 Title = "Jarron de coleccion",
                 Description = "Jarron de coleccion para probar la subasta crítica.",
-                ImageUrl = "https://example.com/jarron.jpg",
+                ImageUrl = "https://tse2.mm.bing.net/th/id/OIP.AHKTJ51sX37nNQy4PEU6jQHaFj?r=0&rs=1&pid=ImgDetMain&o=7&rm=3",
                 Auction = Criticalauction,
             };
             Criticalauction.Product = Criticalproduct;
@@ -220,7 +220,7 @@ namespace Infraestructura.SeedData
             {
                 Title = "Smart TV 65 4K",
                 Description = "Subasta próxima programada para iniciar en 24 horas.",
-                ImageUrl = "https://example.com/tv.jpg",
+                ImageUrl = "https://http2.mlstatic.com/D_NQ_NP_766502-MLU69413004284_052023-O.webp",
                 Auction = Upcomingauction
             };
             Upcomingauction.Product = Upcomingproduct;
@@ -243,7 +243,7 @@ namespace Infraestructura.SeedData
             {
                 Title = "Campera de Cuero Vintage",
                 Description = "Subasta vencida con oferta ganadora pendiente de liquidación por worker.",
-                ImageUrl = "https://example.com/campera.jpg",
+                ImageUrl = "https://www.cuiroma.com/11852-large_default/jacket-marocaine-en-vrai-cuir-de-tres-bonne-qualite.jpg",
                 Auction = ExpiredWithWinnerAuction
             };
             ExpiredWithWinnerAuction.Product = ExpiredWithWinnerProduct;
@@ -274,7 +274,7 @@ namespace Infraestructura.SeedData
             {
                 Title = "Bicicleta de Ruta Clásica",
                 Description = "Subasta vencida sin ofertas para probar pase automático a estado Desierta.",
-                ImageUrl = "https://example.com/bicicleta.jpg",
+                ImageUrl = "https://th.bing.com/th/id/R.0fbbd302369b9b5e0e0412a6f5c59fbf?rik=cbaHcJ6iF9nyYg&riu=http%3a%2f%2fcarbonestore.com%2fcdn%2fshop%2fproducts%2f20_PHOTO_2_1_1024x.jpg%3fv%3d1652129530&ehk=ol5%2brQb3%2fUauz2eR9wqylksQ53sQMQtVdf9yvLZ95iI%3d&risl=&pid=ImgRaw&r=0",
                 Auction = ExpiredDesertedAuction
             };
             ExpiredDesertedAuction.Product = ExpiredDesertedProduct;

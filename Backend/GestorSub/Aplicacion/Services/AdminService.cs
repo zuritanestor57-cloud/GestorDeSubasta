@@ -1,4 +1,5 @@
 using Aplicacion.DTOs;
+using Aplicacion.Exceptions;
 using Aplicacion.Interfaces;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -131,29 +132,47 @@ namespace Aplicacion.Services
                 throw new InvalidOperationException("No se puede moderar una subasta que ya se encuentra finalizada o cancelada.");
             }
 
-            // Liberar escrow de la puja líder si existían ofertas
-            if (auction.Bids != null && auction.Bids.Any())
+            // 2.1 / 3.1: liberación de escrow + cambio de estado + auditoría en un único
+            // bloque transaccional atómico, con rollback completo ante cualquier fallo.
+            using var transaction = await _context.BeginTransactionAsync();
+            try
             {
-                var topBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
-                if (topBid != null)
+                // Liberar escrow de la puja líder si existían ofertas
+                if (auction.Bids != null && auction.Bids.Any())
                 {
-                    await _walletService.ReleaseFundsAsync(topBid.UserId, topBid.Amount);
+                    var topBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
+                    if (topBid != null)
+                    {
+                        await _walletService.ReleaseFundsAsync(topBid.UserId, topBid.Amount);
+                    }
                 }
+
+                auction.Status = AuctionStatus.Cancelled;
+                auction.Version += 1;
+
+                _context.AuditLogs.Add(new AuditLog
+                {
+                    Event = "AuctionModerated",
+                    Details = $"La subasta ID {auctionId} fue moderada y cancelada por un administrador. Motivo: {reason}.",
+                    CreatedAt = DateTime.Now,
+                    UserId = auction.UserId
+                });
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return true;
             }
-
-            auction.Status = AuctionStatus.Cancelled;
-            auction.Version += 1;
-
-            _context.AuditLogs.Add(new AuditLog
+            catch (DbUpdateConcurrencyException)
             {
-                Event = "AuctionModerated",
-                Details = $"La subasta ID {auctionId} fue moderada y cancelada por un administrador. Motivo: {reason}.",
-                CreatedAt = DateTime.Now,
-                UserId = auction.UserId
-            });
-
-            await _context.SaveChangesAsync();
-            return true;
+                await transaction.RollbackAsync();
+                throw new ConflictException(
+                    $"La subasta ID {auctionId} fue modificada por otra operación concurrente. Reintente la moderación.");
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task<IEnumerable<AuditLogDto>> GetAuditLogsAsync()

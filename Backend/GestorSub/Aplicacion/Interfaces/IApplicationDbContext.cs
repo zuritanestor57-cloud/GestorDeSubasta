@@ -1,5 +1,6 @@
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Aplicacion.Interfaces
 {
@@ -16,5 +17,11 @@ namespace Aplicacion.Interfaces
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
         int SaveChanges();
+
+        /// <summary>
+        /// Abre una transacción explícita para agrupar varias operaciones (ej. liberación + retención de escrow)
+        /// en un único bloque atómico, con rollback completo ante cualquier fallo (2.1, 2.3 y 3.1 ACID).
+        /// </summary>
+        Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
     }
 }

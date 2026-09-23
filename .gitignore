@@ -19,8 +19,6 @@ Release/
 *.ldf
 *.ndf
 
-# Archivos de migraciones temporales
-Migrations/
 
 # Archivos de sistema
 Thumbs.db

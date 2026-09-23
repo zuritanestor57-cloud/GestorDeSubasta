@@ -57,14 +57,18 @@ namespace Aplicacion.Services
             };
 
             _context.Transactions.Add(transaction);
-            await _context.SaveChangesAsync();
 
-            // RF-48: Registrar en la bitácora de auditoría
-            await _auditService.LogAsync(
-                "SALDO_ACREDITADO",
-                $"Depósito de ${depositDto.Amount:F2} acreditado al usuario ID {depositDto.UserId}.",
-                depositDto.UserId
-            );
+            // 3.4: la acreditación manual de saldo se audita en el mismo SaveChanges
+            // que el movimiento contable, para que ambos se confirmen o fallen juntos.
+            _context.AuditLogs.Add(new AuditLog
+            {
+                Event = "SALDO_ACREDITADO",
+                Details = $"Depósito de ${depositDto.Amount:F2} acreditado al usuario ID {depositDto.UserId}.",
+                CreatedAt = DateTime.Now,
+                UserId = depositDto.UserId
+            });
+
+            await _context.SaveChangesAsync();
 
             return MapToBalanceDto(wallet);
         }
@@ -114,6 +118,16 @@ namespace Aplicacion.Services
             wallet.HeldBalance += amount;
             wallet.Version += 1;
 
+            // Ledger (2.1 / Módulo 4): la retención debe quedar registrada como movimiento,
+            // no solo como un cambio de campo en la billetera.
+            _context.Transactions.Add(new Transaction
+            {
+                WalletId = wallet.Id,
+                Type = TransactionType.Hold,
+                Amount = amount,
+                CreatedAt = DateTime.Now
+            });
+
             await _context.SaveChangesAsync();
 
             // RF-48: Registrar en la bitácora de auditoría
@@ -139,15 +153,15 @@ namespace Aplicacion.Services
             wallet.AvailableBalance += releaseAmount;
             wallet.Version += 1;
 
-            var refundTx = new Transaction
+            var releaseTx = new Transaction
             {
                 WalletId = wallet.Id,
-                Type = TransactionType.Refund,
+                Type = TransactionType.Release,
                 Amount = releaseAmount,
                 CreatedAt = DateTime.Now
             };
 
-            _context.Transactions.Add(refundTx);
+            _context.Transactions.Add(releaseTx);
             await _context.SaveChangesAsync();
         }
 

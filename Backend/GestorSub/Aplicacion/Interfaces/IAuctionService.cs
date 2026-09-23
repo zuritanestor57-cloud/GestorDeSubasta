@@ -33,5 +33,10 @@ namespace Aplicacion.Interfaces
         /// Registra una nueva oferta económica con escrow automático y regla anti-sniping.
         /// </summary>
         Task<BidResultDto> PlaceBidAsync(int auctionId, CreateBidDto bidDto);
+
+        /// <summary>
+        /// Obtiene el historial de pujas de una subasta, ordenado de mayor a menor monto.
+        /// </summary>
+        Task<IEnumerable<BidDto>> GetBidsForAuctionAsync(int auctionId);
     }
 }
