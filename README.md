@@ -179,6 +179,9 @@ La API estará corriendo en `https://localhost:7197. Puedes probar los endpoints
 | **SignalR Hub** | `https://localhost:5001/hubs/subasta` | WebSocket para pujas en vivo | 
 
 ## 👨‍💻 Proyecto Académico
+* **Autores:*
+  -Nestor Zurita
+  -Estefania Benitez
 
 * **Materia:** Arquitectura de Software
 
