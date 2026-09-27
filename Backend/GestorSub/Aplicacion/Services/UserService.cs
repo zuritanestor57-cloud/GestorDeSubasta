@@ -14,6 +14,20 @@ namespace Aplicacion.Services
             _context = context;
         }
 
+        // Una contraseña guardada sin hashear (usuarios anteriores al hasheo) no es un
+        // hash BCrypt válido: Verify lanza y se trata como credenciales inválidas.
+        private static bool VerifyPassword(string password, string storedHash)
+        {
+            try
+            {
+                return BCrypt.Net.BCrypt.Verify(password, storedHash);
+            }
+            catch (BCrypt.Net.SaltParseException)
+            {
+                return false;
+            }
+        }
+
         public async Task<IEnumerable<UserDto>> GetAllUsersAsync()
         {
             var users = await _context.Users
@@ -59,7 +73,7 @@ namespace Aplicacion.Services
                 .Include(u => u.Wallet)
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == loginDto.Email.ToLower());
 
-            if (user == null || user.Password != loginDto.Password)
+            if (user == null || !VerifyPassword(loginDto.Password, user.Password))
             {
                 return new LoginResultDto
                 {
@@ -104,7 +118,7 @@ namespace Aplicacion.Services
             {
                 Name = createUserDto.Name,
                 Email = createUserDto.Email,
-                Password = createUserDto.Password,
+                Password = BCrypt.Net.BCrypt.HashPassword(createUserDto.Password),
                 Role = createUserDto.Role
             };
 
@@ -157,7 +171,7 @@ namespace Aplicacion.Services
 
             if (!string.IsNullOrWhiteSpace(updateUserDto.Password))
             {
-                user.Password = updateUserDto.Password;
+                user.Password = BCrypt.Net.BCrypt.HashPassword(updateUserDto.Password);
             }
 
             if (updateUserDto.Role.HasValue)

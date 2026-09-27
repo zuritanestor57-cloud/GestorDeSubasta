@@ -1,0 +1,36 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.active {
+  color: var(--success);
+  background: rgb(16 185 129 / 16%);
+  border: 1px solid rgb(16 185 129 / 45%);
+}
+
+.upcoming {
+  color: var(--warning);
+  background: rgb(245 158 11 / 16%);
+  border: 1px solid rgb(245 158 11 / 45%);
+}
+
+.finished {
+  color: var(--danger);
+  background: rgb(239 68 68 / 16%);
+  border: 1px solid rgb(239 68 68 / 45%);
+}

@@ -23,28 +23,28 @@ namespace Infraestructura.SeedData
             {
                 Name = "Vendedor",
                 Email = "vendedor@test.com",
-                Password = "123",
+                Password = BCrypt.Net.BCrypt.HashPassword("123"),
                 Role = UserRole.Seller,
             };
             var buyer1 = new User
             {
                 Name = "Comprador1",
                 Email = "comprador1@test.com",
-                Password = "123",
+                Password = BCrypt.Net.BCrypt.HashPassword("123"),
                 Role = UserRole.Buyer,
             };
             var buyer2 = new User
             {
                 Name = "Comprador2",
                 Email = "comprador2@test.com",
-                Password = "123",
+                Password = BCrypt.Net.BCrypt.HashPassword("123"),
                 Role = UserRole.Buyer
             };
             var buyer3 = new User
             {
                 Name = "Comprador sin saldo",
                 Email = "sinfondos@test.com",
-                Password = "123",
+                Password = BCrypt.Net.BCrypt.HashPassword("123"),
                 Role = UserRole.Buyer,
             };
 

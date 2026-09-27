@@ -1,0 +1,43 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.connected {
+  color: var(--success);
+  background: rgb(16 185 129 / 16%);
+  border: 1px solid rgb(16 185 129 / 45%);
+}
+
+.connected .dot {
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+.pending {
+  color: var(--warning);
+  background: rgb(245 158 11 / 16%);
+  border: 1px solid rgb(245 158 11 / 45%);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}

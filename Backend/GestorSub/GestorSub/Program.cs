@@ -28,7 +28,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Base de datos y DbContext
+// Base de datos y DbContext 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection"),
@@ -86,14 +86,12 @@ if (app.Environment.IsDevelopment())
 // -------------------------------------------------------------
 app.UseCors("AllowFrontend");
 
-app.UseHttpsRedirection();
-
-app.UseCors("AllowAll"); // <-- Aplicar política CORS ANTES de la autorización y MapHub
+app.UseCors("AllowAll"); // <---- Aplicar política CORS ANTES de la autorización y MapHub
 
 app.UseAuthorization();
 
 app.MapControllers();
 
-app.MapHub<AuctionHub>("/hubs/auction");
+app.MapHub<AuctionHub>("/hubs/auction"); // <----entrada para suabsat en vivo 
 
 app.Run(); 

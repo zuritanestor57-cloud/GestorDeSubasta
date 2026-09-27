@@ -1,0 +1,65 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #d1d5db;
+}
+
+.inputWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.icon {
+  position: absolute;
+  left: 14px;
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.input {
+  width: 100%;
+  height: 48px;
+  border-radius: 10px;
+  background: #1f2937;
+  border: 1px solid #374151;
+  color: #fff;
+  padding: 0 14px 0 40px;
+  font-size: 14px;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.inputError {
+  border-color: var(--danger);
+}
+
+.hasRightSlot {
+  padding-right: 44px;
+}
+
+.rightSlot {
+  position: absolute;
+  right: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.helperError {
+  font-size: 12px;
+  color: #f87171;
+}
