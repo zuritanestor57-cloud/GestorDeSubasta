@@ -4,6 +4,7 @@ namespace Aplicacion.Interfaces
     {
         /// <summary>
         /// Registra en la bitácora de auditoría un evento del sistema (RF-48).
-        Task LogAsync(string @event, string details, int userId);
+        /// </summary>
+        Task LogAsync(string @event, string details, int userId, int? auctionId = null, string? reason = null, int? adminUserId = null);
     }
 }

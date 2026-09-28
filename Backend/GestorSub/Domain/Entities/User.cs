@@ -14,6 +14,9 @@ namespace Domain.Entities
         public string Password { get; set; }
         public UserRole Role { get; set; }
         public bool IsActive { get; set; } = true;
+        // Motivo de la última suspensión (null si nunca fue suspendido o si
+        // ya se lo reactivó). Se limpia automáticamente al reactivar.
+        public string? SuspendedReason { get; set; }
 
         public Wallet Wallet { get; set; }
         public ICollection<Auction> Auctions { get; set; }

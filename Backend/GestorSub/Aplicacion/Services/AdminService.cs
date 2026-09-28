@@ -85,7 +85,7 @@ namespace Aplicacion.Services
             return true;
         }
 
-        public async Task<UserDto?> ToggleUserStatusAsync(int userId, bool isActive, string? reason = null)
+        public async Task<UserDto?> ToggleUserStatusAsync(int userId, bool isActive, int adminUserId, string? reason = null)
         {
             var user = await _context.Users
                 .Include(u => u.Wallet)
@@ -94,13 +94,18 @@ namespace Aplicacion.Services
             if (user == null) return null;
 
             user.IsActive = isActive;
+            // Se limpia al reactivar: SuspendedReason solo refleja la última
+            // suspensión mientras la cuenta sigue suspendida.
+            user.SuspendedReason = isActive ? null : reason;
 
             _context.AuditLogs.Add(new AuditLog
             {
                 Event = isActive ? "UserEnabled" : "UserSuspended",
                 Details = $"El usuario ID {userId} ('{user.Name}') fue {(isActive ? "habilitado" : "suspendido")}. Motivo: {reason ?? "Acción administrativa"}.",
                 CreatedAt = DateTime.Now,
-                UserId = userId
+                UserId = userId,
+                Reason = reason,
+                AdminUserId = adminUserId
             });
 
             await _context.SaveChangesAsync();
@@ -112,6 +117,7 @@ namespace Aplicacion.Services
                 Email = user.Email,
                 Role = user.Role.ToString(),
                 IsActive = user.IsActive,
+                SuspendedReason = user.SuspendedReason,
                 WalletId = user.Wallet?.Id ?? 0,
                 TotalBalance = user.Wallet?.TotalBalance ?? 0m,
                 HeldBalance = user.Wallet?.HeldBalance ?? 0m,
@@ -119,7 +125,7 @@ namespace Aplicacion.Services
             };
         }
 
-        public async Task<bool> ModerateAuctionAsync(int auctionId, string reason)
+        public async Task<bool> ModerateAuctionAsync(int auctionId, string reason, int adminUserId)
         {
             var auction = await _context.Auctions
                 .Include(a => a.Bids)
@@ -143,7 +149,7 @@ namespace Aplicacion.Services
                     var topBid = auction.Bids.OrderByDescending(b => b.Amount).FirstOrDefault();
                     if (topBid != null)
                     {
-                        await _walletService.ReleaseFundsAsync(topBid.UserId, topBid.Amount);
+                        await _walletService.ReleaseFundsAsync(topBid.UserId, topBid.Amount, auction.Id);
                     }
                 }
 
@@ -155,7 +161,10 @@ namespace Aplicacion.Services
                     Event = "AuctionModerated",
                     Details = $"La subasta ID {auctionId} fue moderada y cancelada por un administrador. Motivo: {reason}.",
                     CreatedAt = DateTime.Now,
-                    UserId = auction.UserId
+                    UserId = auction.UserId,
+                    AuctionId = auctionId,
+                    Reason = reason,
+                    AdminUserId = adminUserId
                 });
 
                 await _context.SaveChangesAsync();
@@ -179,6 +188,9 @@ namespace Aplicacion.Services
         {
             var logs = await _context.AuditLogs
                 .Include(a => a.User)
+                .Include(a => a.AdminUser)
+                .Include(a => a.Auction)
+                    .ThenInclude(auction => auction!.Product)
                 .OrderByDescending(a => a.CreatedAt)
                 .AsNoTracking()
                 .ToListAsync();
@@ -190,7 +202,12 @@ namespace Aplicacion.Services
                 Details = l.Details,
                 CreatedAt = l.CreatedAt,
                 UserId = l.UserId,
-                UserName = l.User?.Name ?? "Sistema"
+                UserName = l.User?.Name ?? "Sistema",
+                AuctionId = l.AuctionId,
+                AuctionTitle = l.Auction?.Product?.Title,
+                Reason = l.Reason,
+                AdminUserId = l.AdminUserId,
+                AdminUserName = l.AdminUser?.Name
             });
         }
 
@@ -198,7 +215,9 @@ namespace Aplicacion.Services
         {
             var transactions = await _context.Transactions
                 .Include(t => t.Wallet)
-                .ThenInclude(w => w.User)
+                    .ThenInclude(w => w.User)
+                .Include(t => t.Auction)
+                    .ThenInclude(a => a!.Product)
                 .OrderByDescending(t => t.CreatedAt)
                 .AsNoTracking()
                 .ToListAsync();
@@ -211,7 +230,9 @@ namespace Aplicacion.Services
                 UserName = t.Wallet?.User?.Name ?? string.Empty,
                 Type = t.Type.ToString(),
                 Amount = t.Amount,
-                CreatedAt = t.CreatedAt
+                CreatedAt = t.CreatedAt,
+                AuctionId = t.AuctionId,
+                AuctionTitle = t.Auction?.Product?.Title
             });
         }
     }

@@ -86,6 +86,8 @@ namespace Aplicacion.Services
 
             var transactions = await _context.Transactions
                 .Where(t => t.WalletId == wallet.Id)
+                .Include(t => t.Auction)
+                    .ThenInclude(a => a!.Product)
                 .OrderByDescending(t => t.CreatedAt)
                 .AsNoTracking()
                 .ToListAsync();
@@ -96,11 +98,13 @@ namespace Aplicacion.Services
                 WalletId = t.WalletId,
                 Type = t.Type.ToString(),
                 Amount = t.Amount,
-                CreatedAt = t.CreatedAt
+                CreatedAt = t.CreatedAt,
+                AuctionId = t.AuctionId,
+                AuctionTitle = t.Auction?.Product?.Title
             });
         }
 
-        public async Task HoldFundsAsync(int userId, decimal amount)
+        public async Task HoldFundsAsync(int userId, decimal amount, int auctionId)
         {
             if (amount <= 0) throw new ArgumentException("El monto a retener debe ser positivo.");
 
@@ -125,7 +129,8 @@ namespace Aplicacion.Services
                 WalletId = wallet.Id,
                 Type = TransactionType.Hold,
                 Amount = amount,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.Now,
+                AuctionId = auctionId
             });
 
             await _context.SaveChangesAsync();
@@ -134,11 +139,12 @@ namespace Aplicacion.Services
             await _auditService.LogAsync(
                 "FONDOS_RETENIDOS",
                 $"Monto de ${amount:F2} retenido en garantía para usuario ID {userId}.",
-                userId
+                userId,
+                auctionId: auctionId
             );
         }
 
-        public async Task ReleaseFundsAsync(int userId, decimal amount)
+        public async Task ReleaseFundsAsync(int userId, decimal amount, int auctionId)
         {
             if (amount <= 0) return;
 
@@ -158,14 +164,15 @@ namespace Aplicacion.Services
                 WalletId = wallet.Id,
                 Type = TransactionType.Release,
                 Amount = releaseAmount,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.Now,
+                AuctionId = auctionId
             };
 
             _context.Transactions.Add(releaseTx);
             await _context.SaveChangesAsync();
         }
 
-        public async Task TransferFundsAsync(int buyerUserId, int sellerUserId, decimal amount)
+        public async Task TransferFundsAsync(int buyerUserId, int sellerUserId, decimal amount, int auctionId)
         {
             if (amount <= 0) return;
 
@@ -188,7 +195,8 @@ namespace Aplicacion.Services
                 WalletId = buyerWallet.Id,
                 Type = TransactionType.Payment,
                 Amount = transferAmount,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.Now,
+                AuctionId = auctionId
             };
             _context.Transactions.Add(buyerPaymentTx);
 
@@ -197,12 +205,15 @@ namespace Aplicacion.Services
             sellerWallet.AvailableBalance += transferAmount;
             sellerWallet.Version += 1;
 
+            // SaleProceeds, no Deposit: así el ledger distingue el cobro por venta
+            // de una acreditación manual, aunque ambos sumen saldo disponible.
             var sellerDepositTx = new Transaction
             {
                 WalletId = sellerWallet.Id,
-                Type = TransactionType.Deposit,
+                Type = TransactionType.SaleProceeds,
                 Amount = transferAmount,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.Now,
+                AuctionId = auctionId
             };
             _context.Transactions.Add(sellerDepositTx);
 

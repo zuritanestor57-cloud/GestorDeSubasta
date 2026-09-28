@@ -26,5 +26,9 @@ namespace Aplicacion.DTOs
         public string Type { get; set; } = string.Empty;
         public decimal Amount { get; set; }
         public DateTime CreatedAt { get; set; }
+        // Null en depósitos manuales; presente cuando el movimiento lo originó
+        // una subasta (retención, liberación, pago o cobro de venta).
+        public int? AuctionId { get; set; }
+        public string? AuctionTitle { get; set; }
     }
 }

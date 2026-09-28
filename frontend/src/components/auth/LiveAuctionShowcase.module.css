@@ -9,6 +9,7 @@
 }
 
 .imageWrap {
+  position: relative;
   height: 150px;
   border-radius: 12px;
   overflow: hidden;
@@ -17,6 +18,11 @@
 }
 
 .image {
+  /* Absoluta: dentro de un flex column, height:100% en un <img> a veces no
+     resuelve el porcentaje y crece según su propio aspect ratio en vez del
+     alto fijo de imageWrap (se nota con fotos cuadradas). */
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -24,8 +30,8 @@
 }
 
 .imagePlaceholder {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;

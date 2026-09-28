@@ -14,7 +14,7 @@ export type UserRoleValue = (typeof UserRoleValue)[keyof typeof UserRoleValue];
 
 export type AuctionStatus = 'Draft' | 'Published' | 'Active' | 'Cancelled' | 'Finished' | 'Deserted';
 
-export type TransactionType = 'Deposit' | 'Withdrawal' | 'Payment' | 'Refund' | 'Hold' | 'Release';
+export type TransactionType = 'Deposit' | 'Withdrawal' | 'Payment' | 'Refund' | 'Hold' | 'Release' | 'SaleProceeds';
 
 // ---------- Usuarios ----------
 export interface UserDto {
@@ -23,6 +23,8 @@ export interface UserDto {
   email: string;
   role: UserRole;
   isActive: boolean;
+  // Motivo de la última suspensión; null si nunca fue suspendido o ya se lo reactivó.
+  suspendedReason: string | null;
   walletId: number;
   totalBalance: number;
   heldBalance: number;
@@ -181,6 +183,9 @@ export interface TransactionDto {
   type: TransactionType;
   amount: number;
   createdAt: string;
+  // Null en depósitos manuales; presente si el movimiento lo originó una subasta.
+  auctionId: number | null;
+  auctionTitle: string | null;
 }
 
 // ---------- Administración ----------
@@ -204,6 +209,13 @@ export interface AuditLogDto {
   createdAt: string;
   userId: number;
   userName: string;
+  // Null en eventos automáticos del sistema (worker, pujas, etc.); presentes
+  // solo en acciones administrativas (moderar, suspender).
+  auctionId: number | null;
+  auctionTitle: string | null;
+  reason: string | null;
+  adminUserId: number | null;
+  adminUserName: string | null;
 }
 
 export interface AdminTransactionDto {
@@ -214,6 +226,9 @@ export interface AdminTransactionDto {
   type: TransactionType;
   amount: number;
   createdAt: string;
+  // Null en depósitos manuales; presente si el movimiento lo originó una subasta.
+  auctionId: number | null;
+  auctionTitle: string | null;
 }
 
 export interface MessageResponse {

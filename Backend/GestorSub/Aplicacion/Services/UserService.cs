@@ -317,6 +317,7 @@ namespace Aplicacion.Services
                 Email = user.Email,
                 Role = user.Role.ToString(),
                 IsActive = user.IsActive,
+                SuspendedReason = user.SuspendedReason,
                 WalletId = user.Wallet?.Id ?? 0,
                 TotalBalance = user.Wallet?.TotalBalance ?? 0m,
                 HeldBalance = user.Wallet?.HeldBalance ?? 0m,

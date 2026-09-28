@@ -16,6 +16,11 @@ namespace Domain.Entities
         public int WalletId { get; set; }
         public Wallet Wallet { get; set; }
 
+        // Nullable: solo las transacciones originadas por una subasta (retención,
+        // liberación, pago, cobro de venta) la tienen. Un depósito manual no.
+        public int? AuctionId { get; set; }
+        public Auction? Auction { get; set; }
+
     }
 
     public enum TransactionType
@@ -25,6 +30,9 @@ namespace Domain.Entities
         Payment,
         Refund,
         Hold,
-        Release
+        Release,
+        // Acreditación al vendedor tras una venta (TransferFundsAsync), distinta
+        // de un Deposit manual aunque ambas sumen saldo disponible.
+        SaleProceeds
     }
 }

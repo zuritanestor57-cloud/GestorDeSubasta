@@ -88,7 +88,7 @@ namespace Aplicacion.Services
                         auction.Version += 1;
 
                         // Transferir fondos retenidos del postor ganador al vendedor
-                        await _walletService.TransferFundsAsync(highestBid.UserId, auction.UserId, highestBid.Amount);
+                        await _walletService.TransferFundsAsync(highestBid.UserId, auction.UserId, highestBid.Amount, auction.Id);
 
                         // RF-48: Registrar en la bitácora de auditoría
                         _context.AuditLogs.Add(new AuditLog
@@ -96,7 +96,8 @@ namespace Aplicacion.Services
                             Event = "SUBASTA_FINALIZADA_CON_GANADOR",
                             Details = $"Subasta ID {auction.Id} finalizada y adjudicada exitosamente. Ganador Usuario ID {highestBid.UserId} con puja de ${highestBid.Amount:F2}. Vendedor Usuario ID {auction.UserId}.",
                             CreatedAt = now,
-                            UserId = highestBid.UserId
+                            UserId = highestBid.UserId,
+                            AuctionId = auction.Id
                         });
                     }
                     else
@@ -111,7 +112,8 @@ namespace Aplicacion.Services
                             Event = "SUBASTA_MARCADA_DESIERTA",
                             Details = $"Subasta ID {auction.Id} finalizada sin ofertas registradas. Marcada como desierta.",
                             CreatedAt = now,
-                            UserId = auction.UserId
+                            UserId = auction.UserId,
+                            AuctionId = auction.Id
                         });
                     }
 

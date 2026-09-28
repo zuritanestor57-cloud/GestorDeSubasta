@@ -88,7 +88,8 @@ namespace Aplicacion.Services
             await _auditService.LogAsync(
                 "SUBASTA_CREADA",
                 $"Subasta ID {newAuction.Id} ('{newProduct.Title}') creada y publicada por el usuario ID {createDto.UserId}. Precio base: ${newAuction.BasePrice:F2}.",
-                createDto.UserId
+                createDto.UserId,
+                auctionId: newAuction.Id
             );
 
             return MapToDetailDto(newAuction);
@@ -203,7 +204,8 @@ namespace Aplicacion.Services
                 Event = "SUBASTA_CANCELADA",
                 Details = $"Subasta ID {auctionId} cancelada por el vendedor ID {sellerUserId}.",
                 CreatedAt = DateTime.Now,
-                UserId = sellerUserId
+                UserId = sellerUserId,
+                AuctionId = auctionId
             });
 
             await _context.SaveChangesAsync();
@@ -334,10 +336,10 @@ namespace Aplicacion.Services
                 {
                     if (previousTopBid != null)
                     {
-                        await _walletService.ReleaseFundsAsync(previousTopBid.UserId, previousTopBid.Amount);
+                        await _walletService.ReleaseFundsAsync(previousTopBid.UserId, previousTopBid.Amount, auction.Id);
                     }
 
-                    await _walletService.HoldFundsAsync(bidDto.UserId, bidDto.Amount);
+                    await _walletService.HoldFundsAsync(bidDto.UserId, bidDto.Amount, auction.Id);
 
                     newBid = new Bid
                     {
@@ -353,7 +355,8 @@ namespace Aplicacion.Services
                         Event = "PUJA_REGISTRADA",
                         Details = $"Puja realizada en subasta ID {auction.Id} por el monto de ${bidDto.Amount:F2} por el usuario ID {bidDto.UserId}.",
                         CreatedAt = now,
-                        UserId = bidDto.UserId
+                        UserId = bidDto.UserId,
+                        AuctionId = auction.Id
                     });
 
                     if (auction.Bids == null)
@@ -378,7 +381,8 @@ namespace Aplicacion.Services
                             Event = "SUBASTA_EXTENDIDA_ANTISNIPING",
                             Details = $"Subasta ID {auction.Id} extendida de {previousEndDate:HH:mm:ss} a {auction.EndDate:HH:mm:ss} por regla anti-sniping tras la puja del usuario ID {bidDto.UserId}.",
                             CreatedAt = now,
-                            UserId = bidDto.UserId
+                            UserId = bidDto.UserId,
+                            AuctionId = auction.Id
                         });
                     }
 
@@ -402,7 +406,9 @@ namespace Aplicacion.Services
                 await _auditService.LogAsync(
                     "PUJA_RECHAZADA",
                     $"Puja rechazada en subasta ID {auctionId} para el usuario ID {bidDto.UserId}. Motivo: {ex.Message}",
-                    bidDto.UserId
+                    bidDto.UserId,
+                    auctionId: auctionId,
+                    reason: ex.Message
                 );
                 throw;
             }
@@ -411,7 +417,8 @@ namespace Aplicacion.Services
                 await _auditService.LogAsync(
                     "PUJA_RECHAZADA_CONCURRENCIA",
                     $"Puja rechazada en subasta ID {auctionId} para el usuario ID {bidDto.UserId} por conflicto de concurrencia optimista.",
-                    bidDto.UserId
+                    bidDto.UserId,
+                    auctionId: auctionId
                 );
                 throw;
             }

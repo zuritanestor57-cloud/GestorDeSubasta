@@ -101,7 +101,7 @@ namespace GestorSub.Controllers
         {
             try
             {
-                var user = await _adminService.ToggleUserStatusAsync(id, dto.IsActive, dto.Reason);
+                var user = await _adminService.ToggleUserStatusAsync(id, dto.IsActive, dto.AdminUserId, dto.Reason);
                 if (user == null)
                 {
                     return NotFound(new { message = $"No se encontró el usuario con ID {id}." });
@@ -122,7 +122,7 @@ namespace GestorSub.Controllers
         {
             try
             {
-                var success = await _adminService.ModerateAuctionAsync(id, dto.Reason);
+                var success = await _adminService.ModerateAuctionAsync(id, dto.Reason, dto.AdminUserId);
                 if (!success)
                 {
                     return NotFound(new { message = $"No se encontró la subasta con ID {id}." });

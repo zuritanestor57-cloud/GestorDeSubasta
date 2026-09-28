@@ -39,9 +39,6 @@ export default function AuctionCard({ auction, now }: Props) {
             </div>
           )}
         </Link>
-        <div className={styles.badgeSlot}>
-          <StatusBadge status={auction.status} />
-        </div>
       </div>
 
       <div className={styles.body}>
@@ -49,6 +46,7 @@ export default function AuctionCard({ auction, now }: Props) {
         <Link to={detailPath} className={styles.titleLink}>
           <h3 className={styles.title}>{auction.productTitle}</h3>
         </Link>
+        <StatusBadge status={isEnded ? 'Finished' : auction.status} />
 
         <div className={styles.priceRow}>
           <span>

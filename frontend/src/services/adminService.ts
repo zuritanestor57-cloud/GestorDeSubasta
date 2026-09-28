@@ -1,4 +1,5 @@
 import { api } from './api.ts';
+import { authService } from './authService.ts';
 import type {
   AdminTransactionDto,
   AuctionClosureResult,
@@ -30,14 +31,23 @@ export const adminService = {
   },
 
   // PUT /api/admin/users/{id}/status  (suspender o habilitar)
-  async setUserStatus(id: number, isActive: boolean, reason?: string): Promise<UserDto> {
-    const res = await api.put<UserDto>(`/api/admin/users/${id}/status`, { isActive, reason });
+  async setUserStatus(
+    id: number,
+    isActive: boolean,
+    reason?: string,
+    adminUserId: number = authService.requireUserId(),
+  ): Promise<UserDto> {
+    const res = await api.put<UserDto>(`/api/admin/users/${id}/status`, { isActive, reason, adminUserId });
     return res.data;
   },
 
   // POST /api/admin/auctions/{id}/moderations  (cancela la subasta y libera garantías)
-  async moderateAuction(id: number, reason: string): Promise<MessageResponse> {
-    const res = await api.post<MessageResponse>(`/api/admin/auctions/${id}/moderations`, { reason });
+  async moderateAuction(
+    id: number,
+    reason: string,
+    adminUserId: number = authService.requireUserId(),
+  ): Promise<MessageResponse> {
+    const res = await api.post<MessageResponse>(`/api/admin/auctions/${id}/moderations`, { reason, adminUserId });
     return res.data;
   },
 

@@ -18,7 +18,7 @@ namespace Infraestructura.SeedData
                 return;
             }
             DateTime now = DateTime.Now;
-
+            //  agragamos vendedor 
             var seller1 = new User
             {
                 Name = "Vendedor",
@@ -26,6 +26,7 @@ namespace Infraestructura.SeedData
                 Password = BCrypt.Net.BCrypt.HashPassword("123"),
                 Role = UserRole.Seller,
             };
+            // agragamos comprador 
             var buyer1 = new User
             {
                 Name = "Comprador1",
@@ -47,8 +48,17 @@ namespace Infraestructura.SeedData
                 Password = BCrypt.Net.BCrypt.HashPassword("123"),
                 Role = UserRole.Buyer,
             };
+            // agregamos administrador (necesario para probar /admin: no hay forma de
+            // registrarse como Administrator desde el frontend, por diseño)
+            var admin1 = new User
+            {
+                Name = "Administrador",
+                Email = "admin@test.com",
+                Password = BCrypt.Net.BCrypt.HashPassword("123"),
+                Role = UserRole.Administrator,
+            };
 
-            context.Users.AddRange(seller1, buyer1, buyer2, buyer3);
+            context.Users.AddRange(seller1, buyer1, buyer2, buyer3, admin1);
             context.SaveChanges();
 
             var walletSeller1 = new Wallet
@@ -83,8 +93,16 @@ namespace Infraestructura.SeedData
                 AvailableBalance = 500m,
                 Version = 1,
             };
+            var walletAdmin1 = new Wallet
+            {
+                UserId = admin1.Id,
+                TotalBalance = 0,
+                HeldBalance = 0,
+                AvailableBalance = 0,
+                Version = 1,
+            };
 
-            context.Wallets.AddRange(walletSeller1, walletBuyer1, walletBuyer2, walletBuyer3);
+            context.Wallets.AddRange(walletSeller1, walletBuyer1, walletBuyer2, walletBuyer3, walletAdmin1);
             context.SaveChanges();
 
             // Transacciones en el libro mayor (Ledger) que respaldan depósitos y retenciones

@@ -1,0 +1,45 @@
+.wrap {
+  position: relative;
+  height: 176px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+}
+
+.image {
+  /* Absoluta: dentro de un flex column, height:100% en un <img> a veces no
+     resuelve el porcentaje y crece según su propio aspect ratio en vez del
+     alto fijo de wrap (se nota con fotos cuadradas). */
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.badge {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: rgb(11 11 18 / 85%);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 10px;
+}

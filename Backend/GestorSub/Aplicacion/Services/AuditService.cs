@@ -12,14 +12,17 @@ namespace Aplicacion.Services
             _context = context;
         }
 
-        public async Task LogAsync(string @event, string details, int userId)
+        public async Task LogAsync(string @event, string details, int userId, int? auctionId = null, string? reason = null, int? adminUserId = null)
         {
             var log = new AuditLog
             {
                 Event = @event,
                 Details = details,
                 CreatedAt = DateTime.UtcNow,
-                UserId = userId
+                UserId = userId,
+                AuctionId = auctionId,
+                Reason = reason,
+                AdminUserId = adminUserId
             };
 
             _context.AuditLogs.Add(log);

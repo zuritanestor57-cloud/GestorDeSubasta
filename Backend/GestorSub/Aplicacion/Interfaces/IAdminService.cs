@@ -22,12 +22,12 @@ namespace Aplicacion.Interfaces
         /// <summary>
         /// Suspende o habilita a un usuario en la plataforma (RF-42).
         /// </summary>
-        Task<UserDto?> ToggleUserStatusAsync(int userId, bool isActive, string? reason = null);
+        Task<UserDto?> ToggleUserStatusAsync(int userId, bool isActive, int adminUserId, string? reason = null);
 
         /// <summary>
         /// Modera y cancela una subasta que incumple políticas del sistema, liberando escrow si existían ofertas (RF-43).
         /// </summary>
-        Task<bool> ModerateAuctionAsync(int auctionId, string reason);
+        Task<bool> ModerateAuctionAsync(int auctionId, string reason, int adminUserId);
 
         /// <summary>
         /// Obtiene el historial inmutable de auditoría del sistema (RF-44).

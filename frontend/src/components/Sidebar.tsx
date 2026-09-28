@@ -5,6 +5,7 @@ import { authService } from '../services/authService.ts';
 import { walletService } from '../services/walletService.ts';
 import type { WalletBalanceDto } from '../types/index.ts';
 import { formatCurrency, getInitials } from '../utils/format.ts';
+import { WALLET_UPDATED_EVENT } from '../utils/walletEvents.ts';
 import { CompassIcon, GavelIcon, HammerIcon, LogOutIcon, PlusSquareIcon, ShieldIcon, WalletIcon } from './icons.tsx';
 import styles from './Sidebar.module.css';
 
@@ -39,10 +40,17 @@ export default function Sidebar() {
   }
 
   useEffect(() => {
-    // Solo al montar: el saldo del sidebar no necesita refrescarse por cada
-    // interacción del catálogo. Se difiere a un microtask por la misma
-    // razón que en HomePage (loadBalance dispara un setState síncrono).
+    // Se difiere a un microtask por la misma razón que en HomePage
+    // (loadBalance dispara un setState síncrono).
     queueMicrotask(loadBalance);
+
+    // Se re-consulta cuando WalletPage acredita saldo, sin necesidad de
+    // recargar la página ni de un estado global compartido.
+    function handleWalletUpdated() {
+      void loadBalance();
+    }
+    window.addEventListener(WALLET_UPDATED_EVENT, handleWalletUpdated);
+    return () => window.removeEventListener(WALLET_UPDATED_EVENT, handleWalletUpdated);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -69,7 +77,7 @@ export default function Sidebar() {
         </NavLink>
         <NavLink to="/dashboard" className={navLinkClass}>
           <GavelIcon width={18} height={18} />
-          Mis pujas
+          {user?.role === 'Seller' || user?.role === 'BuyerAndSeller' ? 'Mis actividades' : 'Mis pujas'}
         </NavLink>
         <NavLink to="/wallet" className={navLinkClass}>
           <WalletIcon width={18} height={18} />
