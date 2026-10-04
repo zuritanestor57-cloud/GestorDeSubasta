@@ -20,6 +20,8 @@ namespace Infraestructura
         public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
             => Database.BeginTransactionAsync(cancellationToken);
 
+        public void ClearTrackedChanges() => ChangeTracker.Clear();
+
         public DbSet<User> Users { get; set; }
         public DbSet<Auction> Auctions { get; set; }
         public DbSet<Bid> Bids { get; set; }

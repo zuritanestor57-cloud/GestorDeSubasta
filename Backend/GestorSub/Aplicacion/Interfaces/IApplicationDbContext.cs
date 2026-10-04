@@ -23,5 +23,14 @@ namespace Aplicacion.Interfaces
         /// en un único bloque atómico, con rollback completo ante cualquier fallo (2.1, 2.3 y 3.1 ACID).
         /// </summary>
         Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Descarta los cambios que EF todavía tiene trackeados en memoria. Hace falta
+        /// después de un rollback: RollbackAsync deshace la transacción en la base de
+        /// datos, pero no resetea el change tracker, así que un SaveChanges posterior
+        /// en el mismo request (ej. para auditar el rechazo) reintentaría guardar esos
+        /// mismos cambios ya descartados y volvería a fallar sin que nadie lo atrape.
+        /// </summary>
+        void ClearTrackedChanges();
     }
 }
