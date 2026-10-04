@@ -11,7 +11,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
-// Learn more about configuring Swagger----->/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+// Obtén más información sobre cómo configurar Swagger----->/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR();
@@ -74,7 +74,7 @@ using (var scope = app.Services.CreateScope())
     SeedData.Initialize(context);
 }
 
-// Configure the HTTP request pipeline.
+// Configurar el canal de procesamiento de solicitudes HTTP”
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

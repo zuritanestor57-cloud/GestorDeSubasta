@@ -392,12 +392,19 @@ namespace Aplicacion.Services
                 catch (DbUpdateConcurrencyException)
                 {
                     await transaction.RollbackAsync();
+                    // El rollback deshace la transacción en la base, pero no el change
+                    // tracker: sin esto, el SaveChanges del log de auditoría (más abajo,
+                    // en el catch (ConflictException)) reintentaría guardar esta misma
+                    // puja ya descartada y volvería a tirar la misma excepción sin que
+                    // nadie la atrape, devolviendo 500 en vez de 409.
+                    _context.ClearTrackedChanges();
                     throw new ConflictException(
                         $"La subasta ID {auctionId} fue modificada por otra puja concurrente. Reintente la operación.");
                 }
                 catch
                 {
                     await transaction.RollbackAsync();
+                    _context.ClearTrackedChanges();
                     throw;
                 }
             }
